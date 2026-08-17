@@ -15,8 +15,119 @@
   </head>
 
   <body>
-    <main>
-      <h1>Password Generator</h1>
+    <main class="app-shell">
+      <section class="intro-panel">
+        <div class="intro-panel__title">
+          <h1>Password Generator.</h1>
+        </div>
+
+        <div class="intro-panel__message">
+          <p>Generate something unguessable.</p>
+        </div>
+
+        <div class="intro-panel__privacy">
+          <p>Generated locally.</p>
+          <p>Stored nowhere.</p>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <section class="password-panel">
+          <p class="section-label section-label--password">Your password</p>
+
+          <div class="password-display">
+            <span>K7#mQ2!vP9@xL3$fB8</span>
+          </div>
+
+          <div class="password-actions">
+            <button type="button">Generate new password</button>
+            <button type="button">Copy to clipboard</button>
+          </div>
+        </section>
+
+        <section class="content-grid">
+          <section class="configuration-panel">
+            <p class="section-label">Configuration</p>
+
+            <div class="configuration-panel__content">
+              <div class="length-control">
+                <div class="length-control__header">
+                  <span>Length:</span>
+                  <strong>24</strong>
+                  <span>8–64</span>
+                </div>
+
+                <div class="length-control__track" aria-hidden="true">
+                  <span class="length-control__fill"></span>
+                  <span class="length-control__thumb"></span>
+                </div>
+              </div>
+
+              <div class="config-row">
+                <span>Uppercase (A–Z)</span>
+                <button type="button">On</button>
+              </div>
+
+              <div class="config-row">
+                <span>Lowercase (a–z)</span>
+                <button type="button">On</button>
+              </div>
+
+              <div class="config-row">
+                <span>Numbers (0–9)</span>
+                <button type="button">On</button>
+              </div>
+
+              <div class="config-row">
+                <span>Symbols (!@#$%^&*)</span>
+                <button type="button">On</button>
+              </div>
+
+              <div class="config-row">
+                <span>Exclude ambiguous (I l 1 O 0)</span>
+                <button type="button">Off</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="analysis-panel">
+            <p class="section-label">Analysis</p>
+
+            <div class="analysis-panel__content">
+              <div class="analysis-card analysis-card--entropy">
+                <span>Entropy</span>
+                <strong>143</strong>
+                <small>Bits of entropy</small>
+              </div>
+
+              <div class="analysis-row">
+                <div class="analysis-card">
+                  <span>Length</span>
+                  <strong>24</strong>
+                  <small>Characters</small>
+                </div>
+
+                <div class="analysis-card">
+                  <span>Security level</span>
+                  <strong>Very Strong</strong>
+
+                  <div class="strength-bars" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <footer class="source-panel">
+          <a href="#">View source on GitHub</a>
+        </footer>
+      </section>
     </main>
 
     <script src="./js/main.js" type="module"></script>

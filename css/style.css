@@ -2,6 +2,10 @@
    PASSWORD GENERATOR — ESTILOS
    ========================================================= */
 
+/* =========================================================
+   01. RESET / BASE
+   ========================================================= */
+
 *,
 *::before,
 *::after {
@@ -12,6 +16,521 @@ html {
   font-size: 100%;
 }
 
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
 body {
   margin: 0;
+  overflow: hidden;
 }
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+}
+
+/* =========================================================
+   02. TOKENS
+   ========================================================= */
+
+:root {
+  --color-background: #f6f4ee;
+  --color-text: #111111;
+  --color-line: #111111;
+
+  --line-width: 1px;
+  --page-gap: 16px;
+
+  --footer-height: 64px;
+
+  --config-control-width: 132px;
+  --config-button-height: 34px;
+}
+
+/* =========================================================
+   03. PAGE / MASTER GRID
+   ========================================================= */
+
+body {
+  padding: var(--page-gap);
+
+  background: var(--color-background);
+  color: var(--color-text);
+}
+
+.app-shell {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+
+  display: grid;
+  grid-template-columns: minmax(280px, 0.8fr) minmax(0, 2fr);
+
+  border: var(--line-width) solid var(--color-line);
+
+  overflow: hidden;
+}
+
+/* =========================================================
+   04. INTRO COLUMN
+   ========================================================= */
+
+.intro-panel {
+  min-width: 0;
+  min-height: 0;
+
+  display: grid;
+  grid-template-rows:
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    var(--footer-height);
+
+  border-right: var(--line-width) solid var(--color-line);
+}
+
+.intro-panel__title,
+.intro-panel__message,
+.intro-panel__privacy {
+  min-height: 0;
+  padding: 2rem;
+}
+
+.intro-panel__privacy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  border-top: var(--line-width) solid var(--color-line);
+}
+
+.intro-panel h1,
+.intro-panel p {
+  margin: 0;
+}
+
+/* =========================================================
+   05. WORKSPACE
+   ========================================================= */
+
+.workspace {
+  min-width: 0;
+  min-height: 0;
+
+  display: grid;
+  grid-template-rows:
+    minmax(250px, 0.9fr)
+    minmax(0, 1.1fr)
+    var(--footer-height);
+}
+
+/* =========================================================
+   06. PASSWORD PANEL
+   ========================================================= */
+
+.password-panel {
+  min-width: 0;
+  min-height: 0;
+
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+
+  padding: 0 2rem 2rem;
+}
+
+.section-label {
+  margin: 0;
+  padding: 1rem 1.5rem;
+
+  border-bottom: var(--line-width) solid var(--color-line);
+}
+
+.section-label--password {
+  margin: 0 -2rem;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.password-display {
+  min-width: 0;
+  min-height: 0;
+
+  display: flex;
+  align-items: center;
+
+  border-bottom: var(--line-width) solid var(--color-line);
+}
+
+.password-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  border: var(--line-width) solid var(--color-line);
+  border-top: 0;
+}
+
+.password-actions button {
+  min-width: 0;
+  min-height: 64px;
+
+  padding: 1rem;
+
+  border: 0;
+
+  background: transparent;
+  color: inherit;
+}
+
+.password-actions button + button {
+  border-left: var(--line-width) solid var(--color-line);
+}
+
+/* =========================================================
+   07. CONTENT MASTER ROW
+   ========================================================= */
+
+.content-grid {
+  min-width: 0;
+  min-height: 0;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+
+  border-top: var(--line-width) solid var(--color-line);
+}
+
+/* =========================================================
+   08. CONFIGURATION
+   ========================================================= */
+
+.configuration-panel {
+  min-width: 0;
+  min-height: 0;
+
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+
+  border-right: var(--line-width) solid var(--color-line);
+}
+
+.configuration-panel__content {
+  min-width: 0;
+  min-height: 0;
+
+  display: grid;
+  grid-template-rows: auto repeat(5, minmax(0, 1fr));
+
+  margin: 1.25rem 1.5rem;
+}
+
+/* ==========================
+   LENGTH
+   ========================== */
+
+.length-control {
+  min-width: 0;
+  min-height: 0;
+
+  display: grid;
+  align-content: center;
+
+  gap: 0.9rem;
+
+  padding: 0 0 1.1rem;
+}
+
+.length-control__header {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: baseline;
+
+  gap: 0.75rem;
+}
+
+.length-control__header span:last-child {
+  justify-self: end;
+}
+
+.length-control__track {
+  position: relative;
+
+  height: 12px;
+}
+
+.length-control__track::before {
+  content: "";
+
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+
+  height: var(--line-width);
+
+  background: var(--color-line);
+
+  transform: translateY(-50%);
+}
+
+.length-control__fill {
+  position: absolute;
+  top: 50%;
+  left: 0;
+
+  width: 50%;
+  height: 3px;
+
+  background: var(--color-line);
+
+  transform: translateY(-50%);
+}
+
+.length-control__thumb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  width: 18px;
+  height: 18px;
+
+  background: var(--color-line);
+
+  transform: translate(-50%, -50%);
+}
+
+/* =========================================================
+   08.1 CHARACTER OPTIONS
+   ========================================================= */
+
+/*
+  As cinco configurações formam uma única tabela visual.
+
+  Cada linha possui apenas duas colunas:
+
+  1. descrição;
+  2. controle ON/OFF.
+
+  O próprio botão ocupa a segunda célula e cria a divisória
+  vertical contínua através de border-left.
+*/
+
+.config-row {
+  min-width: 0;
+  min-height: 0;
+
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    var(--config-control-width);
+
+  align-items: stretch;
+
+  border-right: var(--line-width) solid var(--color-line);
+  border-left: var(--line-width) solid var(--color-line);
+}
+
+/*
+  O Length é o primeiro filho.
+  Portanto, Uppercase é o segundo filho do container.
+*/
+
+.config-row:nth-child(2) {
+  border-top: var(--line-width) solid var(--color-line);
+}
+
+/*
+  Cada linha posterior cria sua própria divisão horizontal.
+*/
+
+.config-row + .config-row {
+  border-top: var(--line-width) solid var(--color-line);
+}
+
+/*
+  Fecha a parte inferior da tabela.
+*/
+
+.config-row:last-child {
+  border-bottom: var(--line-width) solid var(--color-line);
+}
+
+/* ==========================
+   CONFIGURATION LABEL
+   ========================== */
+
+.config-row > span {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0.65rem 1rem;
+}
+
+/* ==========================
+   ON / OFF CELL
+   ========================== */
+
+.config-row button {
+  position: relative;
+
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0;
+  padding: 0;
+
+  border: 0;
+  border-left: var(--line-width) solid var(--color-line);
+
+  background: transparent;
+  color: inherit;
+}
+
+/* ==========================
+   ON / OFF INNER BOX
+   ========================== */
+
+/*
+  Esta é a pequena caixa visível dentro da célula.
+
+  ON e OFF usam exatamente as mesmas dimensões.
+*/
+
+.config-row button::before {
+  content: "";
+
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  width: calc(100% - 24px);
+  height: var(--config-button-height);
+
+  border: var(--line-width) solid var(--color-line);
+
+  transform: translate(-50%, -50%);
+
+  pointer-events: none;
+}
+
+/* =========================================================
+   09. ANALYSIS
+   ========================================================= */
+
+.analysis-panel {
+  min-width: 0;
+  min-height: 0;
+
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.analysis-panel__content {
+  min-width: 0;
+  min-height: 0;
+
+  display: grid;
+  grid-template-rows:
+    minmax(0, 1.3fr)
+    minmax(0, 0.7fr);
+}
+
+.analysis-card {
+  min-width: 0;
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 1.5rem;
+}
+
+.analysis-card strong {
+  display: block;
+}
+
+.analysis-card--entropy {
+  justify-content: center;
+}
+
+.analysis-row {
+  min-width: 0;
+  min-height: 0;
+
+  display: grid;
+  grid-template-columns: 0.75fr 1fr;
+
+  border-top: var(--line-width) solid var(--color-line);
+}
+
+.analysis-row .analysis-card + .analysis-card {
+  border-left: var(--line-width) solid var(--color-line);
+}
+
+.strength-bars {
+  display: flex;
+
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.strength-bars span {
+  width: 22px;
+  height: 12px;
+
+  background: var(--color-line);
+}
+
+/* =========================================================
+   10. FOOTER
+   ========================================================= */
+
+.source-panel {
+  min-width: 0;
+  min-height: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  padding: 0.75rem 1.5rem;
+
+  border-top: var(--line-width) solid var(--color-line);
+}
+
+/* =========================================================
+   11. STATES / INTERACTIONS
+   ========================================================= */
+
+/*
+  Estados visuais e microinterações serão adicionados
+  em uma etapa posterior.
+*/
+
+/* =========================================================
+   12. RESPONSIVE
+   ========================================================= */
+
+/*
+  Desktop e tablet permanecem presos à viewport.
+
+  O scroll vertical será liberado exclusivamente no layout
+  mobile quando implementarmos a etapa de responsividade.
+*/
