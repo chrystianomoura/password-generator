@@ -84,6 +84,8 @@ strong {
   --page-gap: 16px;
   --footer-height: 64px;
 
+  --password-line-width: 2px;
+
   --config-control-width: 132px;
   --config-button-height: 34px;
 }
@@ -229,9 +231,14 @@ body {
   min-height: 0;
 
   display: grid;
+
+  /*
+    A área da senha fica um pouco mais enxuta
+    e o espaço liberado vai para o conteúdo inferior.
+  */
   grid-template-rows:
-    minmax(250px, 0.9fr)
-    minmax(0, 1.1fr)
+    minmax(220px, 0.78fr)
+    minmax(0, 1.22fr)
     var(--footer-height);
 }
 
@@ -246,8 +253,12 @@ body {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
 
-  padding: 0 2rem 2rem;
+  padding: 0 2rem 1.5rem;
 }
+
+/* ==========================
+   PASSWORD LABEL
+   ========================== */
 
 .section-label {
   margin: 0;
@@ -259,39 +270,127 @@ body {
 }
 
 .section-label--password {
-  margin: 0 -2rem;
-  padding-right: 2rem;
-  padding-left: 2rem;
+  position: relative;
+
+  width: fit-content;
+  justify-self: center;
+
+  margin: 0;
+  padding: 2rem 0 0;
+
+  font-size: 1.60rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.2em;
+
+  text-align: center;
+  text-transform: uppercase;
+
+  border-bottom: 0;
 }
 
+.section-label--password::after {
+  content: "";
+
+  position: absolute;
+  left: 0;
+  bottom: -0.4rem;
+
+  width: 100%;
+  height: 1.5px;
+
+  background: var(--color-line);
+}
+
+/* ==========================
+   PASSWORD DISPLAY
+   ========================== */
+
 .password-display {
+  position: relative;
+
   min-width: 0;
   min-height: 0;
 
   display: flex;
-  align-items: center;
+  align-items: flex-end;
 
-  border-bottom: var(--line-width) solid var(--color-line);
+  overflow: hidden;
+
+  /*
+    A senha fica mais próxima da linha,
+    reforçando a sensação de campo sublinhado.
+  */
+  padding-bottom: 0.7rem;
 }
+
+/*
+  Linha inferior da senha.
+
+  Tem exatamente a mesma largura horizontal
+  do bloco Generate + Copy e agora possui
+  mais espessura para ganhar presença visual.
+*/
+.password-display::after {
+  content: "";
+
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+
+  height: var(--password-line-width);
+
+  background: var(--color-line);
+}
+
+.password-display span {
+  display: block;
+
+  max-width: 100%;
+
+  font-size: clamp(2.5rem, 4.3vw, 5rem);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  letter-spacing: -0.05em;
+
+  white-space: nowrap;
+}
+
+/* ==========================
+   PASSWORD ACTIONS
+   ========================== */
 
 .password-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 
+  margin-top: 0.7rem;
+
   border: var(--line-width) solid var(--color-line);
-  border-top: 0;
 }
 
 .password-actions button {
   min-width: 0;
-  min-height: 64px;
+  min-height: 58px;
 
-  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0.7rem 1rem;
 
   border: 0;
 
   background: transparent;
   color: inherit;
+
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  letter-spacing: 0.075em;
+
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .password-actions button + button {
