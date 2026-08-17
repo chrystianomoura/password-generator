@@ -1,37 +1,60 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+<!doctype html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <meta
       name="description"
-      content="Gerador de senhas aleatórias desenvolvido com JavaScript puro."
+      content="A simple password generator built with JavaScript."
     />
 
     <title>Password Generator</title>
 
+    <!-- IBM Plex Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Styles -->
     <link rel="stylesheet" href="./css/style.css" />
   </head>
 
   <body>
     <main class="app-shell">
-      <section class="intro-panel">
-        <div class="intro-panel__title">
+      <!-- ==================================================
+           INTRO
+           ================================================== -->
+
+      <aside class="intro-panel">
+        <section class="intro-panel__title">
           <h1>Password Generator.</h1>
-        </div>
+        </section>
 
-        <div class="intro-panel__message">
+        <section class="intro-panel__message">
           <p>Generate something unguessable.</p>
-        </div>
+        </section>
 
-        <div class="intro-panel__privacy">
+        <section class="intro-panel__privacy">
           <p>Generated locally.</p>
           <p>Stored nowhere.</p>
-        </div>
-      </section>
+        </section>
+      </aside>
+
+      <!-- ==================================================
+           WORKSPACE
+           ================================================== -->
 
       <section class="workspace">
+        <!-- ================================================
+             PASSWORD
+             ================================================ -->
+
         <section class="password-panel">
           <p class="section-label section-label--password">Your password</p>
 
@@ -41,15 +64,26 @@
 
           <div class="password-actions">
             <button type="button">Generate new password</button>
+
             <button type="button">Copy to clipboard</button>
           </div>
         </section>
 
-        <section class="content-grid">
+        <!-- ================================================
+             CONFIGURATION + ANALYSIS
+             ================================================ -->
+
+        <div class="content-grid">
+          <!-- ==============================================
+               CONFIGURATION
+               ============================================== -->
+
           <section class="configuration-panel">
             <p class="section-label">Configuration</p>
 
             <div class="configuration-panel__content">
+              <!-- LENGTH -->
+
               <div class="length-control">
                 <div class="length-control__header">
                   <span>Length:</span>
@@ -57,61 +91,89 @@
                   <span>8–64</span>
                 </div>
 
-                <div class="length-control__track" aria-hidden="true">
+                <div class="length-control__track">
                   <span class="length-control__fill"></span>
                   <span class="length-control__thumb"></span>
                 </div>
               </div>
 
+              <!-- UPPERCASE -->
+
               <div class="config-row">
                 <span>Uppercase (A–Z)</span>
+
                 <button type="button">On</button>
               </div>
+
+              <!-- LOWERCASE -->
 
               <div class="config-row">
                 <span>Lowercase (a–z)</span>
+
                 <button type="button">On</button>
               </div>
+
+              <!-- NUMBERS -->
 
               <div class="config-row">
                 <span>Numbers (0–9)</span>
+
                 <button type="button">On</button>
               </div>
+
+              <!-- SYMBOLS -->
 
               <div class="config-row">
                 <span>Symbols (!@#$%^&*)</span>
+
                 <button type="button">On</button>
               </div>
 
+              <!-- EXCLUDE AMBIGUOUS -->
+
               <div class="config-row">
                 <span>Exclude ambiguous (I l 1 O 0)</span>
+
                 <button type="button">Off</button>
               </div>
             </div>
           </section>
 
+          <!-- ==============================================
+               ANALYSIS
+               ============================================== -->
+
           <section class="analysis-panel">
             <p class="section-label">Analysis</p>
 
             <div class="analysis-panel__content">
+              <!-- ENTROPY -->
+
               <div class="analysis-card analysis-card--entropy">
                 <span>Entropy</span>
+
                 <strong>143</strong>
-                <small>Bits of entropy</small>
+
+                <span>Bits of entropy</span>
               </div>
+
+              <!-- LOWER ANALYSIS -->
 
               <div class="analysis-row">
                 <div class="analysis-card">
                   <span>Length</span>
+
                   <strong>24</strong>
-                  <small>Characters</small>
+
+                  <span>Characters</span>
                 </div>
 
                 <div class="analysis-card">
                   <span>Security level</span>
+
                   <strong>Very Strong</strong>
 
-                  <div class="strength-bars" aria-hidden="true">
+                  <div class="strength-bars">
                     <span></span>
                     <span></span>
                     <span></span>
@@ -122,14 +184,22 @@
               </div>
             </div>
           </section>
-        </section>
+        </div>
+
+        <!-- ================================================
+             SOURCE
+             ================================================ -->
 
         <footer class="source-panel">
-          <a href="#">View source on GitHub</a>
+          <a
+            href="https://github.com/chrystianomoura/password-generator"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View source on GitHub
+          </a>
         </footer>
       </section>
     </main>
-
-    <script src="./js/main.js" type="module"></script>
   </body>
 </html>

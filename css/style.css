@@ -25,6 +25,13 @@ body {
 body {
   margin: 0;
   overflow: hidden;
+
+  font-family: var(--font-interface);
+  font-weight: var(--font-weight-regular);
+  line-height: 1.2;
+
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 button,
@@ -40,14 +47,42 @@ a {
   color: inherit;
 }
 
+strong {
+  font-weight: var(--font-weight-semibold);
+}
+
 /* =========================================================
    02. TOKENS
    ========================================================= */
 
 :root {
+  /* ==========================
+     COLORS
+     ========================== */
+
   --color-background: #f6f4ee;
   --color-text: #111111;
   --color-line: #111111;
+
+  /* ==========================
+     TYPOGRAPHY
+     ========================== */
+
+  --font-interface: "IBM Plex Mono", "Courier New", monospace;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.08em;
+  --tracking-label: 0.12em;
+
+  /* ==========================
+     LAYOUT
+     ========================== */
 
   --line-width: 1px;
   --page-gap: 16px;
@@ -153,6 +188,9 @@ body {
   margin: 0;
   padding: 1rem 1.5rem;
 
+  font-family: var(--font-interface);
+  font-weight: var(--font-weight-medium);
+
   border-bottom: var(--line-width) solid var(--color-line);
 }
 
@@ -168,6 +206,8 @@ body {
 
   display: flex;
   align-items: center;
+
+  font-family: var(--font-interface);
 
   border-bottom: var(--line-width) solid var(--color-line);
 }
@@ -258,6 +298,10 @@ body {
   gap: 0.75rem;
 }
 
+.length-control__header strong {
+  font-family: var(--font-interface);
+}
+
 .length-control__header span:last-child {
   justify-self: end;
 }
@@ -313,18 +357,6 @@ body {
    08.1 CHARACTER OPTIONS
    ========================================================= */
 
-/*
-  As cinco configurações formam uma única tabela visual.
-
-  Cada linha possui apenas duas colunas:
-
-  1. descrição;
-  2. controle ON/OFF.
-
-  O próprio botão ocupa a segunda célula e cria a divisória
-  vertical contínua através de border-left.
-*/
-
 .config-row {
   min-width: 0;
   min-height: 0;
@@ -340,26 +372,13 @@ body {
   border-left: var(--line-width) solid var(--color-line);
 }
 
-/*
-  O Length é o primeiro filho.
-  Portanto, Uppercase é o segundo filho do container.
-*/
-
 .config-row:nth-child(2) {
   border-top: var(--line-width) solid var(--color-line);
 }
 
-/*
-  Cada linha posterior cria sua própria divisão horizontal.
-*/
-
 .config-row + .config-row {
   border-top: var(--line-width) solid var(--color-line);
 }
-
-/*
-  Fecha a parte inferior da tabela.
-*/
 
 .config-row:last-child {
   border-bottom: var(--line-width) solid var(--color-line);
@@ -406,12 +425,6 @@ body {
 /* ==========================
    ON / OFF INNER BOX
    ========================== */
-
-/*
-  Esta é a pequena caixa visível dentro da célula.
-
-  ON e OFF usam exatamente as mesmas dimensões.
-*/
 
 .config-row button::before {
   content: "";
@@ -464,6 +477,8 @@ body {
 
 .analysis-card strong {
   display: block;
+
+  font-family: var(--font-interface);
 }
 
 .analysis-card--entropy {
