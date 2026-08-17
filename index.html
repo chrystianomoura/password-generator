@@ -1,12 +1,9 @@
-<!DOCTYPE html>
-<html lang="pt-br">
+<!doctype html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
 
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <meta
       name="description"
@@ -66,22 +63,16 @@
              ================================================ -->
 
         <section class="password-panel">
-          <p class="section-label section-label--password">
-            Your password:
-          </p>
+          <p class="section-label section-label--password">Your password:</p>
 
           <div class="password-display">
             <span>K7#mQ2!vP9@xL3$fB8</span>
           </div>
 
           <div class="password-actions">
-            <button type="button">
-              Generate new password
-            </button>
+            <button type="button">Generate new password</button>
 
-            <button type="button">
-              Copy to clipboard
-            </button>
+            <button type="button">Copy to clipboard</button>
           </div>
         </section>
 
@@ -95,9 +86,7 @@
                ============================================== -->
 
           <section class="configuration-panel">
-            <p class="section-label">
-              Configuration
-            </p>
+            <p class="section-label">Configuration</p>
 
             <div class="configuration-panel__content">
               <!-- LENGTH -->
@@ -105,13 +94,27 @@
               <div class="length-control">
                 <div class="length-control__header">
                   <span>Length:</span>
-                  <strong>24</strong>
+
+                  <strong id="length-value"> 24 </strong>
+
                   <span>8–64</span>
                 </div>
 
                 <div class="length-control__track">
-                  <span class="length-control__fill"></span>
-                  <span class="length-control__thumb"></span>
+                  <input
+                    id="password-length"
+                    class="length-control__input"
+                    type="range"
+                    min="8"
+                    max="64"
+                    value="24"
+                    step="1"
+                    aria-label="Password length"
+                  />
+
+                  <span class="length-control__fill" aria-hidden="true"></span>
+
+                  <span class="length-control__thumb" aria-hidden="true"></span>
                 </div>
               </div>
 
@@ -120,10 +123,7 @@
               <div class="config-row">
                 <span>Uppercase (A–Z)</span>
 
-                <button
-                  type="button"
-                  aria-pressed="true"
-                >
+                <button type="button" aria-pressed="true">
                   <span>On</span>
                 </button>
               </div>
@@ -133,10 +133,7 @@
               <div class="config-row">
                 <span>Lowercase (a–z)</span>
 
-                <button
-                  type="button"
-                  aria-pressed="true"
-                >
+                <button type="button" aria-pressed="true">
                   <span>On</span>
                 </button>
               </div>
@@ -146,10 +143,7 @@
               <div class="config-row">
                 <span>Numbers (0–9)</span>
 
-                <button
-                  type="button"
-                  aria-pressed="true"
-                >
+                <button type="button" aria-pressed="true">
                   <span>On</span>
                 </button>
               </div>
@@ -159,10 +153,7 @@
               <div class="config-row">
                 <span>Symbols (!@#$%^&*)</span>
 
-                <button
-                  type="button"
-                  aria-pressed="true"
-                >
+                <button type="button" aria-pressed="true">
                   <span>On</span>
                 </button>
               </div>
@@ -172,10 +163,7 @@
               <div class="config-row">
                 <span>Exclude ambiguous (I l 1 O 0)</span>
 
-                <button
-                  type="button"
-                  aria-pressed="false"
-                >
+                <button type="button" aria-pressed="false">
                   <span>Off</span>
                 </button>
               </div>
@@ -187,9 +175,7 @@
                ============================================== -->
 
           <section class="analysis-panel">
-            <p class="section-label">
-              Analysis
-            </p>
+            <p class="section-label">Analysis</p>
 
             <div class="analysis-panel__content">
               <!-- ENTROPY -->
@@ -208,7 +194,7 @@
                 <div class="analysis-card">
                   <span>Length</span>
 
-                  <strong>24</strong>
+                  <strong id="analysis-length"> 24 </strong>
 
                   <span>Characters</span>
                 </div>
@@ -246,5 +232,8 @@
         </footer>
       </section>
     </main>
+
+    <!-- Scripts -->
+    <script src="./js/main.js"></script>
   </body>
 </html>
