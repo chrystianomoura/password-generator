@@ -232,10 +232,6 @@ body {
 
   display: grid;
 
-  /*
-    A área da senha fica um pouco mais enxuta
-    e o espaço liberado vai para o conteúdo inferior.
-  */
   grid-template-rows:
     minmax(220px, 0.78fr)
     minmax(0, 1.22fr)
@@ -278,7 +274,7 @@ body {
   margin: 0;
   padding: 2rem 0 0;
 
-  font-size: 1.60rem;
+  font-size: 1.6rem;
   font-weight: var(--font-weight-semibold);
   letter-spacing: 0.2em;
 
@@ -313,23 +309,13 @@ body {
 
   display: flex;
   align-items: flex-end;
+  justify-content: center;
 
   overflow: hidden;
 
-  /*
-    A senha fica mais próxima da linha,
-    reforçando a sensação de campo sublinhado.
-  */
   padding-bottom: 0.7rem;
 }
 
-/*
-  Linha inferior da senha.
-
-  Tem exatamente a mesma largura horizontal
-  do bloco Generate + Copy e agora possui
-  mais espessura para ganhar presença visual.
-*/
 .password-display::after {
   content: "";
 
@@ -425,6 +411,22 @@ body {
   border-right: var(--line-width) solid var(--color-line);
 }
 
+.configuration-panel > .section-label,
+.analysis-panel > .section-label {
+  padding: 1rem 1.5rem;
+
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.12em;
+
+  text-transform: uppercase;
+}
+
+.configuration-panel > .section-label,
+.analysis-panel > .section-label {
+  text-align: center;
+}
+
 .configuration-panel__content {
   min-width: 0;
   min-height: 0;
@@ -454,13 +456,30 @@ body {
 .length-control__header {
   display: grid;
   grid-template-columns: auto auto 1fr;
-  align-items: baseline;
+  align-items: center;
 
-  gap: 0.75rem;
+  gap: 0.2rem;
+
+  font-size: 0.85rem;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
+}
+
+.length-control__header strong {
+  font-size: 1.45rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 .length-control__header span:last-child {
   justify-self: end;
+
+  font-size: 1.1rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
 }
 
 .length-control__track {
@@ -556,6 +575,12 @@ body {
   align-items: center;
 
   padding: 0.65rem 1rem;
+
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.075em;
+
+  text-transform: uppercase;
 }
 
 /* ==========================
@@ -581,6 +606,12 @@ body {
 
   background: transparent;
   color: inherit;
+
+  font-size: 0.78rem;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
 }
 
 /* ==========================
@@ -636,9 +667,63 @@ body {
   padding: 1.5rem;
 }
 
+.analysis-card > span {
+  font-size: 0.78rem;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
+}
+
+.analysis-card strong {
+  font-weight: var(--font-weight-bold);
+}
+
+/* ==========================
+   ENTROPY
+   ========================== */
+
 .analysis-card--entropy {
   justify-content: center;
+  align-items: center;
+
+  text-align: center;
 }
+
+/* ENTROPY */
+
+.analysis-card--entropy > span:first-child {
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.1em;
+
+  text-transform: uppercase;
+}
+
+/* 143 */
+
+.analysis-card--entropy strong {
+  margin: 0.25rem 0 0.45rem;
+
+  font-size: clamp(5.5rem, 8vw, 8.5rem);
+  font-weight: var(--font-weight-medium);
+  line-height: 0.85;
+  letter-spacing: -0.07em;
+}
+
+/* BITS OF ENTROPY */
+
+.analysis-card--entropy span:last-child {
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.12em;
+
+  text-transform: uppercase;
+}
+
+/* ==========================
+   LOWER ANALYSIS
+   ========================== */
 
 .analysis-row {
   min-width: 0;
@@ -654,16 +739,46 @@ body {
   border-left: var(--line-width) solid var(--color-line);
 }
 
+.analysis-row .analysis-card {
+  justify-content: center;
+}
+
+.analysis-row .analysis-card strong {
+  margin: 0.2rem 0 0.25rem;
+}
+
+.analysis-row .analysis-card:first-child strong {
+  font-size: 3rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.analysis-row .analysis-card:last-child strong {
+  max-width: 10ch;
+
+  font-size: 1.45rem;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.05;
+  letter-spacing: 0.04em;
+
+  text-transform: uppercase;
+}
+
+/* ==========================
+   STRENGTH BARS
+   ========================== */
+
 .strength-bars {
   display: flex;
 
-  gap: 0.5rem;
-  margin-top: auto;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
 }
 
 .strength-bars span {
-  width: 22px;
-  height: 12px;
+  width: 20px;
+  height: 10px;
 
   background: var(--color-line);
 }
