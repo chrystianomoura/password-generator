@@ -13,6 +13,10 @@ const elements = {
   lengthValue: document.querySelector("#length-value"),
   analysisLength: document.querySelector("#analysis-length"),
   lengthTrack: document.querySelector(".length-control__track"),
+
+  configButtons: document.querySelectorAll(
+    ".config-row button[aria-pressed]",
+  ),
 };
 
 /* =========================================================
@@ -52,7 +56,37 @@ function updateLength() {
 }
 
 /* =========================================================
-   03. EVENTOS
+   03. CONTROLES ON / OFF
+   ========================================================= */
+
+/*
+  Alterna semanticamente e visualmente o estado
+  dos controles de configuração.
+
+  O CSS responde automaticamente ao valor de
+  aria-pressed.
+*/
+
+function toggleConfigButton(button) {
+  const isActive =
+    button.getAttribute("aria-pressed") === "true";
+
+  const newState = !isActive;
+
+  button.setAttribute(
+    "aria-pressed",
+    String(newState),
+  );
+
+  const label = button.querySelector("span");
+
+  if (label) {
+    label.textContent = newState ? "On" : "Off";
+  }
+}
+
+/* =========================================================
+   04. EVENTOS
    ========================================================= */
 
 elements.lengthInput.addEventListener(
@@ -60,8 +94,14 @@ elements.lengthInput.addEventListener(
   updateLength,
 );
 
+elements.configButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    toggleConfigButton(button);
+  });
+});
+
 /* =========================================================
-   04. INICIALIZAÇÃO
+   05. INICIALIZAÇÃO
    ========================================================= */
 
 updateLength();

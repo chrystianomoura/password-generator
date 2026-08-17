@@ -592,10 +592,6 @@ body {
 
   transform: translateY(-50%);
 
-  /*
-    O progresso não possui transição horizontal.
-    Assim ele acompanha o cursor imediatamente.
-  */
   transition:
     height var(--transition-fast),
     opacity var(--transition-fast);
@@ -617,10 +613,6 @@ body {
 
   transform: translate(-50%, -50%);
 
-  /*
-    A posição também não possui transição.
-    Isso elimina a sensação de atraso ao arrastar.
-  */
   transition:
     width var(--transition-fast),
     height var(--transition-fast),
@@ -764,16 +756,11 @@ body {
 
   transform: translate(-50%, -50%);
 
-  transition:
-    background-color var(--transition-fast),
-    border-color var(--transition-fast),
-    opacity var(--transition-fast);
-
   pointer-events: none;
 }
 
 /*
-  O texto fica em uma camada acima da caixa interna.
+  O texto fica acima da caixa interna.
 */
 
 .config-row button > span {
@@ -782,14 +769,19 @@ body {
 
   color: inherit;
 
-  transition: color var(--transition-fast);
-
   pointer-events: none;
 }
 
 /* ==========================
    ESTADO ATIVO — ON
    ========================== */
+
+/*
+  ON possui preenchimento sólido.
+
+  A mudança ocorre imediatamente para que o estado
+  seja percebido sem atraso após o clique.
+*/
 
 .config-row button[aria-pressed="true"]::before {
   background: var(--color-text);
@@ -803,36 +795,19 @@ body {
    ESTADO DESATIVADO — OFF
    ========================== */
 
+/*
+  OFF permanece vazado.
+
+  A diferença entre ON e OFF representa exclusivamente
+  o estado real do controle.
+*/
+
 .config-row button[aria-pressed="false"]::before {
   background: transparent;
 }
 
 .config-row button[aria-pressed="false"] > span {
   color: var(--color-text);
-}
-
-/* ==========================
-   HOVER — ON
-   ========================== */
-
-.config-row button[aria-pressed="true"]:hover::before {
-  background: var(--color-text);
-}
-
-.config-row button[aria-pressed="true"]:hover > span {
-  color: var(--color-background);
-}
-
-/* ==========================
-   HOVER — OFF
-   ========================== */
-
-.config-row button[aria-pressed="false"]:hover::before {
-  background: var(--color-text);
-}
-
-.config-row button[aria-pressed="false"]:hover > span {
-  color: var(--color-background);
 }
 
 /* ==========================
@@ -849,7 +824,7 @@ body {
    ========================== */
 
 .config-row button:active::before {
-  opacity: 0.72;
+  opacity: 0.6;
 }
 
 /* =========================================================
@@ -1076,27 +1051,20 @@ body {
    ========================================================= */
 
 /*
-  3.5.1
-  Generate e Copy possuem estados de hover,
-  foco por teclado e pressionamento.
+  Generate e Copy:
+  inversão visual durante interação.
 
-  3.5.2
-  Os controles ON/OFF utilizam aria-pressed para
-  representar semanticamente o estado atual.
+  ON / OFF:
+  a aparência representa exclusivamente o estado real.
 
-  Apenas a caixa interna dos controles muda de
-  aparência. A célula externa permanece intacta.
+  ON = caixa preenchida.
+  OFF = caixa vazada.
 
-  4.1
-  O controle de comprimento utiliza um
-  input type="range" real.
+  O hover não altera essa leitura.
 
-  O movimento do marcador acompanha o valor
-  imediatamente, sem transição horizontal.
-
-  A área de interação do input é maior que
-  o trilho visual para facilitar o uso nas
-  extremidades de 8 e 64.
+  Length:
+  utiliza input type="range" real com apresentação
+  personalizada e resposta imediata ao arraste.
 */
 
 /* =========================================================
