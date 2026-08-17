@@ -69,16 +69,12 @@ strong {
      ========================== */
 
   --font-interface: "IBM Plex Mono", "Courier New", monospace;
+  --font-display: "Anton", Impact, sans-serif;
 
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
-
-  --tracking-tight: -0.02em;
-  --tracking-normal: 0;
-  --tracking-wide: 0.08em;
-  --tracking-label: 0.12em;
 
   /* ==========================
      LAYOUT
@@ -86,7 +82,6 @@ strong {
 
   --line-width: 1px;
   --page-gap: 16px;
-
   --footer-height: 64px;
 
   --config-control-width: 132px;
@@ -111,7 +106,7 @@ body {
   min-height: 0;
 
   display: grid;
-  grid-template-columns: minmax(280px, 0.8fr) minmax(0, 2fr);
+  grid-template-columns: minmax(280px, 0.68fr) minmax(0, 2fr);
 
   border: var(--line-width) solid var(--color-line);
 
@@ -128,8 +123,8 @@ body {
 
   display: grid;
   grid-template-rows:
-    minmax(0, 1fr)
-    minmax(0, 1fr)
+    minmax(0, 0.82fr)
+    minmax(0, 1.18fr)
     var(--footer-height);
 
   border-right: var(--line-width) solid var(--color-line);
@@ -138,21 +133,91 @@ body {
 .intro-panel__title,
 .intro-panel__message,
 .intro-panel__privacy {
+  min-width: 0;
   min-height: 0;
-  padding: 2rem;
 }
+
+/* ==========================
+   DISPLAY TITLE
+   ========================== */
+
+.intro-panel__title {
+  padding: 2.6rem 1.35rem 0;
+}
+
+.intro-panel__title h1 {
+  margin: 0;
+
+  font-family: var(--font-display);
+  font-size: clamp(3.8rem, 5.5vw, 5rem);
+  font-weight: 400;
+  line-height: 0.96;
+  letter-spacing: -0.03em;
+
+  text-transform: uppercase;
+}
+
+.intro-panel__title h1 span {
+  display: block;
+  white-space: nowrap;
+}
+
+/* ==========================
+   INTRO MESSAGE
+   ========================== */
+
+.intro-panel__message {
+  display: flex;
+  align-items: center;
+
+  padding: 0 2rem;
+}
+
+.intro-panel__message p {
+  margin: 0;
+
+  font-size: 1rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.6;
+  letter-spacing: 0.1em;
+
+  text-transform: uppercase;
+
+  /*
+    Ajuste visual temporário da composição desktop.
+    Será absorvido pela geometria responsiva quando
+    tratarmos variações de altura da viewport.
+  */
+  transform: translateY(-180px);
+}
+
+.intro-panel__message p span {
+  display: block;
+}
+
+/* ==========================
+   PRIVACY MESSAGE
+   ========================== */
 
 .intro-panel__privacy {
   display: flex;
   flex-direction: column;
   justify-content: center;
 
+  padding: 0 2rem;
+
   border-top: var(--line-width) solid var(--color-line);
 }
 
-.intro-panel h1,
-.intro-panel p {
+.intro-panel__privacy p {
   margin: 0;
+
+  font-size: 0.8rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+
+  text-transform: uppercase;
 }
 
 /* =========================================================
@@ -188,7 +253,6 @@ body {
   margin: 0;
   padding: 1rem 1.5rem;
 
-  font-family: var(--font-interface);
   font-weight: var(--font-weight-medium);
 
   border-bottom: var(--line-width) solid var(--color-line);
@@ -196,8 +260,8 @@ body {
 
 .section-label--password {
   margin: 0 -2rem;
-  padding-left: 2rem;
   padding-right: 2rem;
+  padding-left: 2rem;
 }
 
 .password-display {
@@ -207,14 +271,12 @@ body {
   display: flex;
   align-items: center;
 
-  font-family: var(--font-interface);
-
   border-bottom: var(--line-width) solid var(--color-line);
 }
 
 .password-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 
   border: var(--line-width) solid var(--color-line);
   border-top: 0;
@@ -298,10 +360,6 @@ body {
   gap: 0.75rem;
 }
 
-.length-control__header strong {
-  font-family: var(--font-interface);
-}
-
 .length-control__header span:last-child {
   justify-self: end;
 }
@@ -372,6 +430,10 @@ body {
   border-left: var(--line-width) solid var(--color-line);
 }
 
+/*
+  A primeira opção é o segundo filho do container porque
+  o controle de comprimento ocupa a primeira posição.
+*/
 .config-row:nth-child(2) {
   border-top: var(--line-width) solid var(--color-line);
 }
@@ -475,12 +537,6 @@ body {
   padding: 1.5rem;
 }
 
-.analysis-card strong {
-  display: block;
-
-  font-family: var(--font-interface);
-}
-
 .analysis-card--entropy {
   justify-content: center;
 }
@@ -490,7 +546,7 @@ body {
   min-height: 0;
 
   display: grid;
-  grid-template-columns: 0.75fr 1fr;
+  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1fr);
 
   border-top: var(--line-width) solid var(--color-line);
 }
@@ -548,4 +604,8 @@ body {
 
   O scroll vertical será liberado exclusivamente no layout
   mobile quando implementarmos a etapa de responsividade.
+
+  O deslocamento vertical temporário de .intro-panel__message
+  também será substituído nessa etapa por comportamento
+  específico para diferentes alturas de viewport.
 */
