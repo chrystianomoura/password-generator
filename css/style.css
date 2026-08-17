@@ -344,13 +344,15 @@ body {
 .password-display span {
   display: block;
 
+  width: max-content;
   max-width: 100%;
 
-  font-size: clamp(2.5rem, 4.3vw, 5rem);
+  font-size: 5rem;
   font-weight: var(--font-weight-medium);
   line-height: 1;
   letter-spacing: -0.05em;
 
+  text-align: center;
   white-space: nowrap;
 }
 
@@ -776,13 +778,6 @@ body {
    ESTADO ATIVO — ON
    ========================== */
 
-/*
-  ON possui preenchimento sólido.
-
-  A mudança ocorre imediatamente para que o estado
-  seja percebido sem atraso após o clique.
-*/
-
 .config-row button[aria-pressed="true"]::before {
   background: var(--color-text);
 }
@@ -794,13 +789,6 @@ body {
 /* ==========================
    ESTADO DESATIVADO — OFF
    ========================== */
-
-/*
-  OFF permanece vazado.
-
-  A diferença entre ON e OFF representa exclusivamente
-  o estado real do controle.
-*/
 
 .config-row button[aria-pressed="false"]::before {
   background: transparent;
@@ -1060,11 +1048,16 @@ body {
   ON = caixa preenchida.
   OFF = caixa vazada.
 
-  O hover não altera essa leitura.
-
   Length:
   utiliza input type="range" real com apresentação
   personalizada e resposta imediata ao arraste.
+
+  Senha:
+  o tamanho tipográfico é ajustado dinamicamente pelo
+  JavaScript com base na largura real disponível.
+
+  Isso mantém senhas de até 64 caracteres inteiras,
+  centralizadas e em uma única linha.
 */
 
 /* =========================================================

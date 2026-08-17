@@ -65,14 +65,16 @@
         <section class="password-panel">
           <p class="section-label section-label--password">Your password:</p>
 
-          <div class="password-display">
-            <span>K7#mQ2!vP9@xL3$fB8</span>
+          <div class="password-display" aria-live="polite" aria-atomic="true">
+            <span id="generated-password"></span>
           </div>
 
           <div class="password-actions">
-            <button type="button">Generate new password</button>
+            <button id="generate-password" type="button">
+              Generate new password
+            </button>
 
-            <button type="button">Copy to clipboard</button>
+            <button id="copy-password" type="button">Copy to clipboard</button>
           </div>
         </section>
 
@@ -123,7 +125,11 @@
               <div class="config-row">
                 <span>Uppercase (A–Z)</span>
 
-                <button type="button" aria-pressed="true">
+                <button
+                  type="button"
+                  data-option="uppercase"
+                  aria-pressed="true"
+                >
                   <span>On</span>
                 </button>
               </div>
@@ -133,7 +139,11 @@
               <div class="config-row">
                 <span>Lowercase (a–z)</span>
 
-                <button type="button" aria-pressed="true">
+                <button
+                  type="button"
+                  data-option="lowercase"
+                  aria-pressed="true"
+                >
                   <span>On</span>
                 </button>
               </div>
@@ -143,7 +153,7 @@
               <div class="config-row">
                 <span>Numbers (0–9)</span>
 
-                <button type="button" aria-pressed="true">
+                <button type="button" data-option="numbers" aria-pressed="true">
                   <span>On</span>
                 </button>
               </div>
@@ -153,7 +163,7 @@
               <div class="config-row">
                 <span>Symbols (!@#$%^&*)</span>
 
-                <button type="button" aria-pressed="true">
+                <button type="button" data-option="symbols" aria-pressed="true">
                   <span>On</span>
                 </button>
               </div>
@@ -163,7 +173,11 @@
               <div class="config-row">
                 <span>Exclude ambiguous (I l 1 O 0)</span>
 
-                <button type="button" aria-pressed="false">
+                <button
+                  type="button"
+                  data-option="excludeAmbiguous"
+                  aria-pressed="false"
+                >
                   <span>Off</span>
                 </button>
               </div>
