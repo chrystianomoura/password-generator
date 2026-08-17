@@ -34,7 +34,13 @@ const elements = {
 };
 
 /* =========================================================
-   02. CONTROLE DE COMPRIMENTO
+   02. ESTADO LOCAL DA INTERFACE
+   ========================================================= */
+
+let copyFeedbackTimeout = null;
+
+/* =========================================================
+   03. CONTROLE DE COMPRIMENTO
    ========================================================= */
 
 function updateLength() {
@@ -53,7 +59,7 @@ function updateLength() {
 }
 
 /* =========================================================
-   03. LEITURA DAS CONFIGURAÇÕES
+   04. LEITURA DAS CONFIGURAÇÕES
    ========================================================= */
 
 function isOptionEnabled(optionName) {
@@ -79,7 +85,7 @@ function getPasswordOptions() {
 }
 
 /* =========================================================
-   04. CONTROLES ON / OFF
+   05. CONTROLES ON / OFF
    ========================================================= */
 
 function countActiveCharacterSets() {
@@ -92,14 +98,6 @@ function toggleConfigButton(button) {
   const optionName = button.dataset.option;
 
   const isActive = button.getAttribute("aria-pressed") === "true";
-
-  /*
-    Pelo menos uma categoria de caracteres precisa
-    permanecer ativa.
-
-    excludeAmbiguous não conta como categoria porque
-    apenas modifica os conjuntos existentes.
-  */
 
   const isCharacterOption = optionName !== "excludeAmbiguous";
 
@@ -119,23 +117,8 @@ function toggleConfigButton(button) {
 }
 
 /* =========================================================
-   05. AJUSTE RESPONSIVO DA SENHA
+   06. AJUSTE RESPONSIVO DA SENHA
    ========================================================= */
-
-/*
-  A senha deve permanecer inteira em uma única linha.
-
-  Em vez de definir tamanhos diferentes manualmente
-  para 8, 24, 40 ou 64 caracteres, medimos o espaço
-  real disponível e encontramos o maior tamanho de
-  fonte que ainda cabe dentro do campo.
-
-  Isso mantém o componente robusto mesmo quando:
-  - o comprimento da senha muda;
-  - a viewport muda;
-  - a largura do painel muda;
-  - a tipografia termina de carregar.
-*/
 
 const PASSWORD_FONT = Object.freeze({
   minimum: 16,
@@ -156,13 +139,6 @@ function fitPasswordToDisplay() {
   if (availableWidth <= 0) {
     return;
   }
-
-  /*
-    Binary search evita diminuir a fonte pixel por pixel.
-
-    Em poucas iterações encontramos o maior tamanho
-    possível que ainda mantém a senha inteira visível.
-  */
 
   let minimum = PASSWORD_FONT.minimum;
   let maximum = PASSWORD_FONT.maximum;
@@ -185,7 +161,7 @@ function fitPasswordToDisplay() {
 }
 
 /* =========================================================
-   06. GERAÇÃO DA SENHA
+   07. GERAÇÃO DA SENHA
    ========================================================= */
 
 function createPassword() {
@@ -203,16 +179,101 @@ function createPassword() {
 }
 
 /* =========================================================
-   07. OBSERVAÇÃO DO LAYOUT
+   08. CÓPIA PARA A ÁREA DE TRANSFERÊNCIA
    ========================================================= */
 
 /*
-  Se o painel mudar de largura, recalculamos a fonte.
+  Mostra um feedback curto no próprio botão.
 
-  ResizeObserver evita depender apenas do evento global
-  de resize da janela e observa diretamente o componente
-  que realmente importa.
+  O timer anterior é cancelado antes de criar outro,
+  evitando conflitos caso o usuário clique repetidamente.
 */
+
+function showCopyFeedback(message) {
+  if (copyFeedbackTimeout !== null) {
+    clearTimeout(copyFeedbackTimeout);
+  }
+
+  elements.copyButton.textContent = message;
+
+  copyFeedbackTimeout = window.setTimeout(() => {
+    elements.copyButton.textContent = "Copy to clipboard";
+
+    copyFeedbackTimeout = null;
+  }, 1400);
+}
+
+/*
+  Fallback para ambientes onde navigator.clipboard
+  não esteja disponível ou a operação seja recusada.
+
+  O textarea é criado apenas durante a cópia e
+  removido imediatamente depois.
+*/
+
+function copyWithFallback(text) {
+  const temporaryTextarea = document.createElement("textarea");
+
+  temporaryTextarea.value = text;
+
+  temporaryTextarea.setAttribute("readonly", "");
+
+  temporaryTextarea.style.position = "fixed";
+  temporaryTextarea.style.opacity = "0";
+  temporaryTextarea.style.pointerEvents = "none";
+
+  document.body.appendChild(temporaryTextarea);
+
+  temporaryTextarea.select();
+
+  const copied = document.execCommand("copy");
+
+  temporaryTextarea.remove();
+
+  if (!copied) {
+    throw new Error("Fallback clipboard copy failed.");
+  }
+}
+
+async function copyPassword() {
+  const password = elements.passwordOutput.textContent;
+
+  if (!password) {
+    return;
+  }
+
+  try {
+    if (
+      navigator.clipboard &&
+      typeof navigator.clipboard.writeText === "function"
+    ) {
+      await navigator.clipboard.writeText(password);
+    } else {
+      copyWithFallback(password);
+    }
+
+    showCopyFeedback("Copied!");
+  } catch (error) {
+    /*
+      Se a API moderna existir, mas falhar por política,
+      permissão ou contexto, tentamos o fallback.
+    */
+
+    try {
+      copyWithFallback(password);
+
+      showCopyFeedback("Copied!");
+    } catch (fallbackError) {
+      console.error("Clipboard copy failed:", error, fallbackError);
+
+      showCopyFeedback("Copy failed");
+    }
+  }
+}
+
+/* =========================================================
+   09. OBSERVAÇÃO DO LAYOUT
+   ========================================================= */
 
 const passwordResizeObserver = new ResizeObserver(() => {
   fitPasswordToDisplay();
@@ -221,7 +282,7 @@ const passwordResizeObserver = new ResizeObserver(() => {
 passwordResizeObserver.observe(elements.passwordDisplay);
 
 /* =========================================================
-   08. EVENTOS
+   10. EVENTOS
    ========================================================= */
 
 elements.lengthInput.addEventListener("input", updateLength);
@@ -234,20 +295,14 @@ elements.configButtons.forEach((button) => {
 
 elements.generateButton.addEventListener("click", createPassword);
 
+elements.copyButton.addEventListener("click", copyPassword);
+
 /* =========================================================
-   09. INICIALIZAÇÃO
+   11. INICIALIZAÇÃO
    ========================================================= */
 
 updateLength();
 createPassword();
-
-/*
-  Fontes web podem terminar de carregar depois que o
-  primeiro layout já foi calculado.
-
-  Quando estiverem disponíveis, fazemos uma segunda
-  medição para garantir precisão tipográfica.
-*/
 
 if (document.fonts?.ready) {
   document.fonts.ready.then(() => {
