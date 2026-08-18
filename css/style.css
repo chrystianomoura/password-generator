@@ -24,7 +24,11 @@ body {
 
 body {
   margin: 0;
+  padding: var(--page-gap);
   overflow: hidden;
+
+  background: var(--color-background);
+  color: var(--color-text);
 
   font-family: var(--font-interface);
   font-weight: var(--font-weight-regular);
@@ -99,13 +103,6 @@ strong {
 /* =========================================================
    03. PÁGINA / GRADE PRINCIPAL
    ========================================================= */
-
-body {
-  padding: var(--page-gap);
-
-  background: var(--color-background);
-  color: var(--color-text);
-}
 
 .app-shell {
   width: 100%;
@@ -347,7 +344,15 @@ body {
   width: max-content;
   max-width: 100%;
 
+  /*
+    Valor inicial/fallback.
+
+    Após a geração, o JavaScript calcula dinamicamente
+    o maior tamanho de fonte que mantém a senha inteira
+    dentro da largura disponível.
+  */
   font-size: 5rem;
+
   font-weight: var(--font-weight-medium);
   line-height: 1;
   letter-spacing: -0.05em;
@@ -380,7 +385,6 @@ body {
   padding: 0.7rem 1rem;
 
   border: 0;
-  outline: 0;
 
   background: transparent;
   color: inherit;
@@ -413,9 +417,19 @@ body {
   color: var(--color-background);
 }
 
+/*
+  O foco por teclado precisa ser claramente perceptível.
+
+  Mantemos a inversão visual já existente e adicionamos
+  um contorno externo, evitando depender apenas da cor.
+*/
+
 .password-actions button:focus-visible {
   background: var(--color-text);
   color: var(--color-background);
+
+  outline: 2px solid var(--color-text);
+  outline-offset: 3px;
 
   box-shadow: inset 0 0 0 2px var(--color-background);
 }
@@ -695,15 +709,8 @@ body {
 }
 
 /*
-  Os nomes das opções permanecem em caixa alta,
-  preservando a linguagem visual da interface.
-
-  Os exemplos de caracteres mantêm exatamente a
-  capitalização original porque A–Z e a–z possuem
-  significados técnicos diferentes.
-
-  Também preservamos corretamente o "l" minúsculo
-  da lista de caracteres ambíguos.
+  Preserva a capitalização original dos exemplos
+  técnicos da interface.
 */
 
 .config-row .character-example {
@@ -730,7 +737,6 @@ body {
 
   border: 0;
   border-left: var(--line-width) solid var(--color-line);
-  outline: 0;
 
   background: transparent;
   color: var(--color-text);
@@ -1040,24 +1046,19 @@ body {
 
 /*
   Generate e Copy:
-  inversão visual durante interação.
+  possuem hover, pressionamento e foco visível
+  específico para navegação por teclado.
 
   ON / OFF:
   a aparência representa exclusivamente o estado real.
 
-  ON = caixa preenchida.
-  OFF = caixa vazada.
-
   Length:
-  utiliza input type="range" real com apresentação
-  personalizada e resposta imediata ao arraste.
+  utiliza input type="range" nativo com apresentação
+  personalizada e suporte natural a teclado.
 
   Senha:
   o tamanho tipográfico é ajustado dinamicamente pelo
   JavaScript com base na largura real disponível.
-
-  Isso mantém senhas de até 64 caracteres inteiras,
-  centralizadas e em uma única linha.
 */
 
 /* =========================================================

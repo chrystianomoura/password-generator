@@ -44,11 +44,8 @@ const elements = {
 let copyFeedbackTimeout = null;
 
 /*
-  Guarda a configuração exata utilizada para gerar
-  a senha atualmente exibida.
-
-  Isso permite saber se as configurações atuais
-  ainda correspondem à senha que está na tela.
+  Guarda a configuração utilizada para gerar
+  a senha que está atualmente exibida.
 */
 
 let generatedPasswordOptions = null;
@@ -79,14 +76,6 @@ function getPasswordOptions() {
    04. COMPARAÇÃO DAS CONFIGURAÇÕES
    ========================================================= */
 
-/*
-  Compara duas configurações do gerador.
-
-  Não utilizamos apenas uma flag "alterado = true",
-  porque o usuário pode modificar uma opção e depois
-  retornar exatamente à configuração usada na senha atual.
-*/
-
 function passwordOptionsAreEqual(firstOptions, secondOptions) {
   if (!firstOptions || !secondOptions) {
     return false;
@@ -107,11 +96,11 @@ function passwordOptionsAreEqual(firstOptions, secondOptions) {
    ========================================================= */
 
 /*
-  A senha exibida não é substituída automaticamente
-  quando uma configuração muda.
+  Alterar uma configuração não substitui silenciosamente
+  a senha atual.
 
-  Em vez disso, o botão informa que existe uma nova
-  configuração pronta para gerar outra senha.
+  O botão informa quando a configuração atual é diferente
+  daquela utilizada na geração exibida.
 */
 
 function updateGenerationState() {
@@ -203,8 +192,8 @@ function toggleConfigButton(button) {
   const isCharacterOption = optionName !== "excludeAmbiguous";
 
   /*
-    Pelo menos uma das quatro categorias principais
-    precisa permanecer ativa.
+    Pelo menos uma categoria principal precisa
+    permanecer ativa.
   */
 
   if (isCharacterOption && isActive && countActiveCharacterSets() === 1) {
@@ -289,14 +278,6 @@ function createPassword() {
 
     elements.passwordOutput.textContent = password;
 
-    /*
-      Guardamos uma cópia da configuração.
-
-      Não mantemos apenas a referência do objeto,
-      evitando que alterações futuras contaminem
-      o estado associado à senha atual.
-    */
-
     generatedPasswordOptions = {
       ...options,
     };
@@ -312,6 +293,15 @@ function createPassword() {
    11. FEEDBACK DE CÓPIA
    ========================================================= */
 
+/*
+  O feedback visual também é refletido em aria-label,
+  melhorando a informação disponível para tecnologias
+  assistivas.
+
+  O timer anterior é cancelado para evitar conflitos
+  em cliques sucessivos.
+*/
+
 function showCopyFeedback(message) {
   if (copyFeedbackTimeout !== null) {
     clearTimeout(copyFeedbackTimeout);
@@ -319,8 +309,15 @@ function showCopyFeedback(message) {
 
   elements.copyButton.textContent = message;
 
+  elements.copyButton.setAttribute("aria-label", message);
+
   copyFeedbackTimeout = window.setTimeout(() => {
     elements.copyButton.textContent = "Copy to clipboard";
+
+    elements.copyButton.setAttribute(
+      "aria-label",
+      "Copy password to clipboard",
+    );
 
     copyFeedbackTimeout = null;
   }, 1400);
@@ -420,6 +417,8 @@ elements.copyButton.addEventListener("click", copyPassword);
 /* =========================================================
    16. INICIALIZAÇÃO
    ========================================================= */
+
+elements.copyButton.setAttribute("aria-label", "Copy password to clipboard");
 
 updateLength();
 createPassword();
