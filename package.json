@@ -1,7 +1,7 @@
 {
   "name": "password-generator",
   "version": "1.0.0",
-  "description": "",
+  "description": "A secure client-side password generator with cryptographic randomness, entropy analysis and customizable character sets.",
   "scripts": {
     "test": "node --test"
   },
@@ -9,12 +9,19 @@
     "type": "git",
     "url": "git+https://github.com/chrystianomoura/password-generator.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "password-generator",
+    "javascript",
+    "cryptography",
+    "security",
+    "entropy",
+    "web-crypto-api"
+  ],
+  "author": "Chrystiano Moura",
+  "license": "MIT",
   "type": "module",
   "bugs": {
     "url": "https://github.com/chrystianomoura/password-generator/issues"
   },
-  "homepage": "https://github.com/chrystianomoura/password-generator#readme"
+  "homepage": "https://chrystianomoura.github.io/password-generator/"
 }
