@@ -1,6 +1,8 @@
 "use strict";
 
 import { generatePassword } from "./password-generator.js";
+import { calculateEntropy } from "./password-entropy.js";
+import { evaluatePasswordStrength } from "./password-strength.js";
 
 /* =========================================================
    PASSWORD GENERATOR — CONTROLADOR PRINCIPAL
@@ -8,8 +10,8 @@ import { generatePassword } from "./password-generator.js";
    Responsabilidade:
    conectar a interface aos módulos da aplicação.
 
-   A lógica criptográfica permanece isolada em
-   password-generator.js.
+   A geração, a análise de entropia e a classificação
+   de segurança permanecem isoladas em seus módulos.
    ========================================================= */
 
 /* =========================================================
@@ -22,15 +24,19 @@ const elements = {
   analysisLength: document.querySelector("#analysis-length"),
   lengthTrack: document.querySelector(".length-control__track"),
 
-  configButtons: document.querySelectorAll(".config-row button[data-option]"),
+  configButtons: document.querySelectorAll(
+    ".config-row button[data-option]",
+  ),
 
   passwordDisplay: document.querySelector(".password-display"),
-
   passwordOutput: document.querySelector("#generated-password"),
 
   generateButton: document.querySelector("#generate-password"),
-
   copyButton: document.querySelector("#copy-password"),
+
+  entropyValue: document.querySelector("#entropy-value"),
+  securityLevel: document.querySelector("#security-level"),
+  strengthBars: document.querySelectorAll("#strength-bars span"),
 };
 
 /* =========================================================
@@ -40,30 +46,13 @@ const elements = {
 let copyFeedbackTimeout = null;
 
 /* =========================================================
-   03. CONTROLE DE COMPRIMENTO
-   ========================================================= */
-
-function updateLength() {
-  const value = Number(elements.lengthInput.value);
-  const minimum = Number(elements.lengthInput.min);
-  const maximum = Number(elements.lengthInput.max);
-
-  const progress = ((value - minimum) / (maximum - minimum)) * 100;
-
-  elements.lengthValue.textContent = value;
-  elements.analysisLength.textContent = value;
-
-  elements.lengthTrack.style.setProperty("--length-progress", `${progress}%`);
-
-  elements.lengthInput.setAttribute("aria-valuetext", `${value} characters`);
-}
-
-/* =========================================================
-   04. LEITURA DAS CONFIGURAÇÕES
+   03. LEITURA DAS CONFIGURAÇÕES
    ========================================================= */
 
 function isOptionEnabled(optionName) {
-  const button = document.querySelector(`[data-option="${optionName}"]`);
+  const button = document.querySelector(
+    `[data-option="${optionName}"]`,
+  );
 
   return button?.getAttribute("aria-pressed") === "true";
 }
@@ -73,23 +62,78 @@ function getPasswordOptions() {
     length: Number(elements.lengthInput.value),
 
     uppercase: isOptionEnabled("uppercase"),
-
     lowercase: isOptionEnabled("lowercase"),
-
     numbers: isOptionEnabled("numbers"),
-
     symbols: isOptionEnabled("symbols"),
-
     excludeAmbiguous: isOptionEnabled("excludeAmbiguous"),
   };
 }
 
 /* =========================================================
-   05. CONTROLES ON / OFF
+   04. ANÁLISE
+   ========================================================= */
+
+function updateAnalysis() {
+  const options = getPasswordOptions();
+
+  const entropy = calculateEntropy(options);
+  const strength = evaluatePasswordStrength(entropy);
+
+  elements.entropyValue.textContent = Math.round(entropy);
+  elements.securityLevel.textContent = strength.label;
+
+  elements.strengthBars.forEach((bar, index) => {
+    bar.style.opacity =
+      index < strength.bars
+        ? "1"
+        : "0.18";
+  });
+
+  elements.securityLevel.setAttribute(
+    "aria-label",
+    `Security level: ${strength.label}`,
+  );
+}
+
+/* =========================================================
+   05. CONTROLE DE COMPRIMENTO
+   ========================================================= */
+
+function updateLength() {
+  const value = Number(elements.lengthInput.value);
+  const minimum = Number(elements.lengthInput.min);
+  const maximum = Number(elements.lengthInput.max);
+
+  const progress =
+    ((value - minimum) / (maximum - minimum)) * 100;
+
+  elements.lengthValue.textContent = value;
+  elements.analysisLength.textContent = value;
+
+  elements.lengthTrack.style.setProperty(
+    "--length-progress",
+    `${progress}%`,
+  );
+
+  elements.lengthInput.setAttribute(
+    "aria-valuetext",
+    `${value} characters`,
+  );
+
+  updateAnalysis();
+}
+
+/* =========================================================
+   06. CONTROLES ON / OFF
    ========================================================= */
 
 function countActiveCharacterSets() {
-  const characterOptions = ["uppercase", "lowercase", "numbers", "symbols"];
+  const characterOptions = [
+    "uppercase",
+    "lowercase",
+    "numbers",
+    "symbols",
+  ];
 
   return characterOptions.filter(isOptionEnabled).length;
 }
@@ -97,27 +141,44 @@ function countActiveCharacterSets() {
 function toggleConfigButton(button) {
   const optionName = button.dataset.option;
 
-  const isActive = button.getAttribute("aria-pressed") === "true";
+  const isActive =
+    button.getAttribute("aria-pressed") === "true";
 
-  const isCharacterOption = optionName !== "excludeAmbiguous";
+  const isCharacterOption =
+    optionName !== "excludeAmbiguous";
 
-  if (isCharacterOption && isActive && countActiveCharacterSets() === 1) {
+  /*
+    Pelo menos uma das quatro categorias principais
+    precisa permanecer ativa.
+  */
+
+  if (
+    isCharacterOption &&
+    isActive &&
+    countActiveCharacterSets() === 1
+  ) {
     return;
   }
 
   const newState = !isActive;
 
-  button.setAttribute("aria-pressed", String(newState));
+  button.setAttribute(
+    "aria-pressed",
+    String(newState),
+  );
 
   const label = button.querySelector("span");
 
   if (label) {
-    label.textContent = newState ? "On" : "Off";
+    label.textContent =
+      newState ? "On" : "Off";
   }
+
+  updateAnalysis();
 }
 
 /* =========================================================
-   06. AJUSTE RESPONSIVO DA SENHA
+   07. AJUSTE RESPONSIVO DA SENHA
    ========================================================= */
 
 const PASSWORD_FONT = Object.freeze({
@@ -130,7 +191,11 @@ function fitPasswordToDisplay() {
   const output = elements.passwordOutput;
   const display = elements.passwordDisplay;
 
-  if (!output || !display || !output.textContent) {
+  if (
+    !output ||
+    !display ||
+    !output.textContent
+  ) {
     return;
   }
 
@@ -140,16 +205,29 @@ function fitPasswordToDisplay() {
     return;
   }
 
+  /*
+    Busca binária pelo maior tamanho de fonte
+    que mantém a senha inteira dentro do campo.
+  */
+
   let minimum = PASSWORD_FONT.minimum;
   let maximum = PASSWORD_FONT.maximum;
   let bestSize = minimum;
 
-  while (maximum - minimum > PASSWORD_FONT.precision) {
-    const candidate = (minimum + maximum) / 2;
+  while (
+    maximum - minimum >
+    PASSWORD_FONT.precision
+  ) {
+    const candidate =
+      (minimum + maximum) / 2;
 
-    output.style.fontSize = `${candidate}px`;
+    output.style.fontSize =
+      `${candidate}px`;
 
-    if (output.scrollWidth <= availableWidth) {
+    if (
+      output.scrollWidth <=
+      availableWidth
+    ) {
       bestSize = candidate;
       minimum = candidate;
     } else {
@@ -157,86 +235,100 @@ function fitPasswordToDisplay() {
     }
   }
 
-  output.style.fontSize = `${bestSize}px`;
+  output.style.fontSize =
+    `${bestSize}px`;
 }
 
 /* =========================================================
-   07. GERAÇÃO DA SENHA
+   08. GERAÇÃO DA SENHA
    ========================================================= */
 
 function createPassword() {
   try {
     const options = getPasswordOptions();
 
-    const password = generatePassword(options);
+    const password =
+      generatePassword(options);
 
-    elements.passwordOutput.textContent = password;
+    elements.passwordOutput.textContent =
+      password;
 
     fitPasswordToDisplay();
   } catch (error) {
-    console.error("Password generation failed:", error);
+    console.error(
+      "Password generation failed:",
+      error,
+    );
   }
 }
 
 /* =========================================================
-   08. CÓPIA PARA A ÁREA DE TRANSFERÊNCIA
+   09. FEEDBACK DE CÓPIA
    ========================================================= */
 
-/*
-  Mostra um feedback curto no próprio botão.
-
-  O timer anterior é cancelado antes de criar outro,
-  evitando conflitos caso o usuário clique repetidamente.
-*/
-
 function showCopyFeedback(message) {
-  if (copyFeedbackTimeout !== null) {
+  if (
+    copyFeedbackTimeout !== null
+  ) {
     clearTimeout(copyFeedbackTimeout);
   }
 
-  elements.copyButton.textContent = message;
+  elements.copyButton.textContent =
+    message;
 
-  copyFeedbackTimeout = window.setTimeout(() => {
-    elements.copyButton.textContent = "Copy to clipboard";
+  copyFeedbackTimeout =
+    window.setTimeout(() => {
+      elements.copyButton.textContent =
+        "Copy to clipboard";
 
-    copyFeedbackTimeout = null;
-  }, 1400);
+      copyFeedbackTimeout = null;
+    }, 1400);
 }
 
-/*
-  Fallback para ambientes onde navigator.clipboard
-  não esteja disponível ou a operação seja recusada.
-
-  O textarea é criado apenas durante a cópia e
-  removido imediatamente depois.
-*/
+/* =========================================================
+   10. FALLBACK DE CÓPIA
+   ========================================================= */
 
 function copyWithFallback(text) {
-  const temporaryTextarea = document.createElement("textarea");
+  const temporaryTextarea =
+    document.createElement("textarea");
 
   temporaryTextarea.value = text;
 
-  temporaryTextarea.setAttribute("readonly", "");
+  temporaryTextarea.setAttribute(
+    "readonly",
+    "",
+  );
 
   temporaryTextarea.style.position = "fixed";
   temporaryTextarea.style.opacity = "0";
   temporaryTextarea.style.pointerEvents = "none";
 
-  document.body.appendChild(temporaryTextarea);
+  document.body.appendChild(
+    temporaryTextarea,
+  );
 
   temporaryTextarea.select();
 
-  const copied = document.execCommand("copy");
+  const copied =
+    document.execCommand("copy");
 
   temporaryTextarea.remove();
 
   if (!copied) {
-    throw new Error("Fallback clipboard copy failed.");
+    throw new Error(
+      "Fallback clipboard copy failed.",
+    );
   }
 }
 
+/* =========================================================
+   11. CÓPIA PARA A ÁREA DE TRANSFERÊNCIA
+   ========================================================= */
+
 async function copyPassword() {
-  const password = elements.passwordOutput.textContent;
+  const password =
+    elements.passwordOutput.textContent;
 
   if (!password) {
     return;
@@ -245,26 +337,28 @@ async function copyPassword() {
   try {
     if (
       navigator.clipboard &&
-      typeof navigator.clipboard.writeText === "function"
+      typeof navigator.clipboard.writeText ===
+        "function"
     ) {
-      await navigator.clipboard.writeText(password);
+      await navigator.clipboard.writeText(
+        password,
+      );
     } else {
       copyWithFallback(password);
     }
 
     showCopyFeedback("Copied!");
   } catch (error) {
-    /*
-      Se a API moderna existir, mas falhar por política,
-      permissão ou contexto, tentamos o fallback.
-    */
-
     try {
       copyWithFallback(password);
 
       showCopyFeedback("Copied!");
     } catch (fallbackError) {
-      console.error("Clipboard copy failed:", error, fallbackError);
+      console.error(
+        "Clipboard copy failed:",
+        error,
+        fallbackError,
+      );
 
       showCopyFeedback("Copy failed");
     }
@@ -272,33 +366,48 @@ async function copyPassword() {
 }
 
 /* =========================================================
-   09. OBSERVAÇÃO DO LAYOUT
+   12. OBSERVAÇÃO DO LAYOUT
    ========================================================= */
 
-const passwordResizeObserver = new ResizeObserver(() => {
-  fitPasswordToDisplay();
-});
+const passwordResizeObserver =
+  new ResizeObserver(() => {
+    fitPasswordToDisplay();
+  });
 
-passwordResizeObserver.observe(elements.passwordDisplay);
+passwordResizeObserver.observe(
+  elements.passwordDisplay,
+);
 
 /* =========================================================
-   10. EVENTOS
+   13. EVENTOS
    ========================================================= */
 
-elements.lengthInput.addEventListener("input", updateLength);
+elements.lengthInput.addEventListener(
+  "input",
+  updateLength,
+);
 
 elements.configButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    toggleConfigButton(button);
-  });
+  button.addEventListener(
+    "click",
+    () => {
+      toggleConfigButton(button);
+    },
+  );
 });
 
-elements.generateButton.addEventListener("click", createPassword);
+elements.generateButton.addEventListener(
+  "click",
+  createPassword,
+);
 
-elements.copyButton.addEventListener("click", copyPassword);
+elements.copyButton.addEventListener(
+  "click",
+  copyPassword,
+);
 
 /* =========================================================
-   11. INICIALIZAÇÃO
+   14. INICIALIZAÇÃO
    ========================================================= */
 
 updateLength();

@@ -535,14 +535,6 @@ body {
   height: 22px;
 }
 
-/*
-  O input real possui uma área de interação
-  maior que o trilho visual.
-
-  Isso facilita pegar o controle quando o
-  marcador estiver exatamente no mínimo ou máximo.
-*/
-
 .length-control__input {
   position: absolute;
   top: 50%;
@@ -561,8 +553,6 @@ body {
   transform: translateY(-50%);
 }
 
-/* Linha-base do controle. */
-
 .length-control__track::before {
   content: "";
 
@@ -579,8 +569,6 @@ body {
 
   pointer-events: none;
 }
-
-/* Parte preenchida do controle. */
 
 .length-control__fill {
   position: absolute;
@@ -600,8 +588,6 @@ body {
 
   pointer-events: none;
 }
-
-/* Marcador da posição atual. */
 
 .length-control__thumb {
   position: absolute;
@@ -697,6 +683,8 @@ body {
   display: flex;
   align-items: center;
 
+  gap: 0.35rem;
+
   padding: 0.65rem 1rem;
 
   font-size: 0.9rem;
@@ -704,6 +692,22 @@ body {
   letter-spacing: 0.075em;
 
   text-transform: uppercase;
+}
+
+/*
+  Os nomes das opções permanecem em caixa alta,
+  preservando a linguagem visual da interface.
+
+  Os exemplos de caracteres mantêm exatamente a
+  capitalização original porque A–Z e a–z possuem
+  significados técnicos diferentes.
+
+  Também preservamos corretamente o "l" minúsculo
+  da lista de caracteres ambíguos.
+*/
+
+.config-row .character-example {
+  text-transform: none;
 }
 
 /* ==========================
@@ -760,10 +764,6 @@ body {
 
   pointer-events: none;
 }
-
-/*
-  O texto fica acima da caixa interna.
-*/
 
 .config-row button > span {
   position: relative;

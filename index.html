@@ -123,7 +123,10 @@
               <!-- UPPERCASE -->
 
               <div class="config-row">
-                <span>Uppercase (A–Z)</span>
+                <span>
+                  Uppercase
+                  <span class="character-example">(A–Z)</span>
+                </span>
 
                 <button
                   type="button"
@@ -137,7 +140,10 @@
               <!-- LOWERCASE -->
 
               <div class="config-row">
-                <span>Lowercase (a–z)</span>
+                <span>
+                  Lowercase
+                  <span class="character-example">(a–z)</span>
+                </span>
 
                 <button
                   type="button"
@@ -151,7 +157,10 @@
               <!-- NUMBERS -->
 
               <div class="config-row">
-                <span>Numbers (0–9)</span>
+                <span>
+                  Numbers
+                  <span class="character-example">(0–9)</span>
+                </span>
 
                 <button type="button" data-option="numbers" aria-pressed="true">
                   <span>On</span>
@@ -161,7 +170,10 @@
               <!-- SYMBOLS -->
 
               <div class="config-row">
-                <span>Symbols (!@#$%^&*)</span>
+                <span>
+                  Symbols
+                  <span class="character-example">(!@#$%^&*)</span>
+                </span>
 
                 <button type="button" data-option="symbols" aria-pressed="true">
                   <span>On</span>
@@ -171,7 +183,10 @@
               <!-- EXCLUDE AMBIGUOUS -->
 
               <div class="config-row">
-                <span>Exclude ambiguous (I l 1 O 0)</span>
+                <span>
+                  Exclude ambiguous
+                  <span class="character-example">(I l 1 O 0)</span>
+                </span>
 
                 <button
                   type="button"
@@ -197,7 +212,7 @@
               <div class="analysis-card analysis-card--entropy">
                 <span>Entropy</span>
 
-                <strong>143</strong>
+                <strong id="entropy-value"> 0 </strong>
 
                 <span>Bits of entropy</span>
               </div>
@@ -216,9 +231,13 @@
                 <div class="analysis-card">
                   <span>Security level</span>
 
-                  <strong>Very Strong</strong>
+                  <strong id="security-level" aria-live="polite"> — </strong>
 
-                  <div class="strength-bars">
+                  <div
+                    id="strength-bars"
+                    class="strength-bars"
+                    aria-label="Password strength"
+                  >
                     <span></span>
                     <span></span>
                     <span></span>

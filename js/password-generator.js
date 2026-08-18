@@ -1,11 +1,25 @@
 "use strict";
 
+import { getActiveCharacterSets } from "./password-character-sets.js";
+
 /* =========================================================
    PASSWORD GENERATOR — MOTOR DE GERAÇÃO
    ---------------------------------------------------------
    Responsabilidade única:
    gerar senhas criptograficamente seguras a partir
    das configurações recebidas.
+
+   Estratégia:
+   - cada posição é escolhida uniformemente do pool;
+   - usamos CSPRNG;
+   - eliminamos modulo bias;
+   - rejeitamos senhas que não contenham todas as
+     categorias selecionadas.
+
+   Como todas as strings do pool possuem inicialmente
+   a mesma probabilidade e a rejeição depende apenas
+   de sua validade, todas as senhas aceitas permanecem
+   equiprováveis dentro do conjunto válido.
 
    Este módulo:
    - não acessa o DOM;
@@ -15,31 +29,7 @@
    ========================================================= */
 
 /* =========================================================
-   01. CONJUNTOS DE CARACTERES
-   ========================================================= */
-
-const CHARACTER_SETS = Object.freeze({
-  uppercase: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-  lowercase: "abcdefghijklmnopqrstuvwxyz",
-  numbers: "0123456789",
-  symbols: "!@#$%^&*()_+-=[]{}|;:,.<>?",
-});
-
-/*
-  Caracteres visualmente parecidos que podem causar
-  confusão durante leitura ou digitação manual.
-*/
-
-const AMBIGUOUS_CHARACTERS = new Set([
-  "I",
-  "l",
-  "1",
-  "O",
-  "0",
-]);
-
-/* =========================================================
-   02. LIMITES
+   01. LIMITES
    ========================================================= */
 
 const MIN_LENGTH = 8;
@@ -48,133 +38,12 @@ const MAX_LENGTH = 64;
 const UINT32_RANGE = 0x100000000;
 
 /* =========================================================
-   03. ALEATORIEDADE CRIPTOGRÁFICA
-   ========================================================= */
-
-/*
-  Retorna um inteiro aleatório no intervalo:
-
-  0 <= resultado < maximum
-
-  Não utilizamos simplesmente:
-
-  randomValue % maximum
-
-  porque isso pode introduzir modulo bias quando o tamanho
-  do intervalo não divide exatamente o espaço do Uint32.
-
-  Rejection sampling descarta a pequena região excedente
-  antes de aplicar o módulo.
-*/
-
-function getSecureRandomInteger(maximum) {
-  if (!Number.isSafeInteger(maximum) || maximum <= 0) {
-    throw new RangeError(
-      "Maximum must be a positive safe integer.",
-    );
-  }
-
-  if (maximum > UINT32_RANGE) {
-    throw new RangeError(
-      "Maximum exceeds the supported random range.",
-    );
-  }
-
-  if (
-    typeof globalThis.crypto === "undefined" ||
-    typeof globalThis.crypto.getRandomValues !== "function"
-  ) {
-    throw new Error(
-      "Cryptographically secure randomness is unavailable.",
-    );
-  }
-
-  const randomBuffer = new Uint32Array(1);
-
-  const rejectionLimit =
-    UINT32_RANGE -
-    (UINT32_RANGE % maximum);
-
-  let randomValue;
-
-  do {
-    globalThis.crypto.getRandomValues(randomBuffer);
-    randomValue = randomBuffer[0];
-  } while (randomValue >= rejectionLimit);
-
-  return randomValue % maximum;
-}
-
-/* =========================================================
-   04. FILTRAGEM DE CARACTERES
-   ========================================================= */
-
-function removeAmbiguousCharacters(characterSet) {
-  return [...characterSet]
-    .filter(
-      (character) =>
-        !AMBIGUOUS_CHARACTERS.has(character),
-    )
-    .join("");
-}
-
-/* =========================================================
-   05. CONSTRUÇÃO DOS CONJUNTOS ATIVOS
-   ========================================================= */
-
-function buildActiveCharacterSets(options) {
-  const activeSets = [];
-
-  const addCharacterSet = (enabled, characterSet) => {
-    if (!enabled) {
-      return;
-    }
-
-    const finalSet = options.excludeAmbiguous
-      ? removeAmbiguousCharacters(characterSet)
-      : characterSet;
-
-    if (finalSet.length === 0) {
-      throw new Error(
-        "An enabled character set cannot be empty.",
-      );
-    }
-
-    activeSets.push(finalSet);
-  };
-
-  addCharacterSet(
-    options.uppercase,
-    CHARACTER_SETS.uppercase,
-  );
-
-  addCharacterSet(
-    options.lowercase,
-    CHARACTER_SETS.lowercase,
-  );
-
-  addCharacterSet(
-    options.numbers,
-    CHARACTER_SETS.numbers,
-  );
-
-  addCharacterSet(
-    options.symbols,
-    CHARACTER_SETS.symbols,
-  );
-
-  return activeSets;
-}
-
-/* =========================================================
-   06. VALIDAÇÃO
+   02. VALIDAÇÃO DAS OPÇÕES
    ========================================================= */
 
 function validateOptions(options) {
   if (!options || typeof options !== "object") {
-    throw new TypeError(
-      "Password options must be provided.",
-    );
+    throw new TypeError("Password options must be provided.");
   }
 
   if (
@@ -197,83 +66,124 @@ function validateOptions(options) {
 
   for (const option of booleanOptions) {
     if (typeof options[option] !== "boolean") {
-      throw new TypeError(
-        `${option} must be a boolean.`,
-      );
+      throw new TypeError(`${option} must be a boolean.`);
     }
   }
 }
 
 /* =========================================================
-   07. SELEÇÃO SEGURA DE CARACTERES
+   03. ALEATORIEDADE CRIPTOGRÁFICA
+   ========================================================= */
+
+/*
+  Retorna um inteiro uniforme no intervalo:
+
+      0 <= resultado < maximum
+
+  Um simples:
+
+      randomValue % maximum
+
+  pode criar modulo bias quando maximum não divide
+  exatamente o espaço de valores de Uint32.
+
+  Por isso descartamos a região excedente antes
+  da operação de módulo.
+*/
+
+function getSecureRandomInteger(maximum) {
+  if (!Number.isSafeInteger(maximum) || maximum <= 0) {
+    throw new RangeError("Maximum must be a positive safe integer.");
+  }
+
+  if (maximum > UINT32_RANGE) {
+    throw new RangeError("Maximum exceeds the supported random range.");
+  }
+
+  if (
+    typeof globalThis.crypto === "undefined" ||
+    typeof globalThis.crypto.getRandomValues !== "function"
+  ) {
+    throw new Error("Cryptographically secure randomness is unavailable.");
+  }
+
+  const randomBuffer = new Uint32Array(1);
+
+  const rejectionLimit = UINT32_RANGE - (UINT32_RANGE % maximum);
+
+  let randomValue;
+
+  do {
+    globalThis.crypto.getRandomValues(randomBuffer);
+
+    randomValue = randomBuffer[0];
+  } while (randomValue >= rejectionLimit);
+
+  return randomValue % maximum;
+}
+
+/* =========================================================
+   04. SELEÇÃO SEGURA DE CARACTER
    ========================================================= */
 
 function getSecureRandomCharacter(characterSet) {
-  if (
-    typeof characterSet !== "string" ||
-    characterSet.length === 0
-  ) {
-    throw new Error(
-      "Cannot select from an empty character set.",
-    );
+  if (typeof characterSet !== "string" || characterSet.length === 0) {
+    throw new Error("Cannot select from an empty character set.");
   }
 
-  const index = getSecureRandomInteger(
-    characterSet.length,
-  );
+  const index = getSecureRandomInteger(characterSet.length);
 
   return characterSet[index];
 }
 
 /* =========================================================
-   08. EMBARALHAMENTO SEGURO
+   05. CONSTRUÇÃO DE UMA TENTATIVA
    ========================================================= */
 
 /*
-  Fisher-Yates utilizando nossa fonte criptográfica.
+  Todas as posições são escolhidas do mesmo pool completo.
 
-  Isso é importante porque inicialmente inserimos um
-  caractere obrigatório de cada categoria ativa.
-
-  O embaralhamento remove a posição previsível desses
-  caracteres.
+  Portanto, antes da filtragem por categorias obrigatórias,
+  cada string possível de determinado comprimento possui
+  exatamente a mesma probabilidade.
 */
 
-function secureShuffle(characters) {
-  for (
-    let index = characters.length - 1;
-    index > 0;
-    index -= 1
-  ) {
-    const randomIndex =
-      getSecureRandomInteger(index + 1);
+function generateCandidate(length, completePool) {
+  const characters = [];
 
-    [
-      characters[index],
-      characters[randomIndex],
-    ] = [
-      characters[randomIndex],
-      characters[index],
-    ];
+  for (let index = 0; index < length; index += 1) {
+    characters.push(getSecureRandomCharacter(completePool));
   }
 
-  return characters;
+  return characters.join("");
 }
 
 /* =========================================================
-   09. GERAÇÃO DA SENHA
+   06. VALIDAÇÃO DA TENTATIVA
+   ========================================================= */
+
+/*
+  Uma senha só é aceita se possuir pelo menos um
+  caractere pertencente a cada categoria ativa.
+*/
+
+function containsAllActiveSets(password, activeSets) {
+  return activeSets.every(({ characters }) =>
+    [...password].some((character) => characters.includes(character)),
+  );
+}
+
+/* =========================================================
+   07. GERAÇÃO DA SENHA
    ========================================================= */
 
 export function generatePassword(options) {
   validateOptions(options);
 
-  const activeSets =
-    buildActiveCharacterSets(options);
+  const activeSets = getActiveCharacterSets(options);
 
   if (activeSets.length === 0) {
-    throw new Error(
-      "At least one character category must be enabled.",
-    );
+    throw new Error("At least one character category must be enabled.");
   }
 
   if (options.length < activeSets.length) {
@@ -282,46 +192,29 @@ export function generatePassword(options) {
     );
   }
 
-  const completePool = activeSets.join("");
-
-  const passwordCharacters = [];
+  const completePool = activeSets.map(({ characters }) => characters).join("");
 
   /*
-    Primeiro garantimos pelo menos um caractere
-    de cada categoria selecionada.
+    Rejection sampling sobre strings completas.
+
+    Toda tentativa é uniforme no espaço completePool^length.
+
+    Rejeitar apenas as strings que não satisfazem as
+    categorias mantém distribuição uniforme entre todas
+    as senhas válidas restantes.
   */
 
-  for (const characterSet of activeSets) {
-    passwordCharacters.push(
-      getSecureRandomCharacter(characterSet),
-    );
+  while (true) {
+    const candidate = generateCandidate(options.length, completePool);
+
+    if (containsAllActiveSets(candidate, activeSets)) {
+      return candidate;
+    }
   }
-
-  /*
-    Depois completamos o comprimento utilizando
-    todo o conjunto permitido.
-  */
-
-  while (
-    passwordCharacters.length < options.length
-  ) {
-    passwordCharacters.push(
-      getSecureRandomCharacter(completePool),
-    );
-  }
-
-  /*
-    Finalmente embaralhamos todas as posições
-    usando Fisher-Yates + CSPRNG.
-  */
-
-  secureShuffle(passwordCharacters);
-
-  return passwordCharacters.join("");
 }
 
 /* =========================================================
-   10. METADADOS PÚBLICOS
+   08. METADADOS PÚBLICOS
    ========================================================= */
 
 export const PASSWORD_LIMITS = Object.freeze({
