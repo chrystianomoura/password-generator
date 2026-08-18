@@ -32,6 +32,8 @@ const elements = {
   generateButton: document.querySelector("#generate-password"),
   copyButton: document.querySelector("#copy-password"),
 
+  appStatus: document.querySelector("#app-status"),
+
   entropyValue: document.querySelector("#entropy-value"),
   securityLevel: document.querySelector("#security-level"),
   strengthBars: document.querySelectorAll("#strength-bars span"),
@@ -42,16 +44,19 @@ const elements = {
    ========================================================= */
 
 let copyFeedbackTimeout = null;
-
-/*
-  Guarda a configuração utilizada para gerar
-  a senha que está atualmente exibida.
-*/
-
 let generatedPasswordOptions = null;
+let generationFailed = false;
 
 /* =========================================================
-   03. LEITURA DAS CONFIGURAÇÕES
+   03. STATUS DA APLICAÇÃO
+   ========================================================= */
+
+function setAppStatus(message = "") {
+  elements.appStatus.textContent = message;
+}
+
+/* =========================================================
+   04. LEITURA DAS CONFIGURAÇÕES
    ========================================================= */
 
 function isOptionEnabled(optionName) {
@@ -73,7 +78,7 @@ function getPasswordOptions() {
 }
 
 /* =========================================================
-   04. COMPARAÇÃO DAS CONFIGURAÇÕES
+   05. COMPARAÇÃO DAS CONFIGURAÇÕES
    ========================================================= */
 
 function passwordOptionsAreEqual(firstOptions, secondOptions) {
@@ -92,16 +97,8 @@ function passwordOptionsAreEqual(firstOptions, secondOptions) {
 }
 
 /* =========================================================
-   05. ESTADO DA GERAÇÃO
+   06. ESTADO DA GERAÇÃO
    ========================================================= */
-
-/*
-  Alterar uma configuração não substitui silenciosamente
-  a senha atual.
-
-  O botão informa quando a configuração atual é diferente
-  daquela utilizada na geração exibida.
-*/
 
 function updateGenerationState() {
   const currentOptions = getPasswordOptions();
@@ -111,6 +108,17 @@ function updateGenerationState() {
     !passwordOptionsAreEqual(currentOptions, generatedPasswordOptions);
 
   elements.generateButton.dataset.stale = String(isStale);
+
+  if (generationFailed) {
+    elements.generateButton.textContent = "Try again";
+
+    elements.generateButton.setAttribute(
+      "aria-label",
+      "Try to generate the password again",
+    );
+
+    return;
+  }
 
   elements.generateButton.textContent = isStale
     ? "Generate updated password"
@@ -125,32 +133,45 @@ function updateGenerationState() {
 }
 
 /* =========================================================
-   06. ANÁLISE
+   07. ANÁLISE
    ========================================================= */
 
 function updateAnalysis() {
-  const options = getPasswordOptions();
+  try {
+    const options = getPasswordOptions();
 
-  const entropy = calculateEntropy(options);
+    const entropy = calculateEntropy(options);
 
-  const strength = evaluatePasswordStrength(entropy);
+    const strength = evaluatePasswordStrength(entropy);
 
-  elements.entropyValue.textContent = Math.round(entropy);
+    elements.entropyValue.textContent = Math.round(entropy);
 
-  elements.securityLevel.textContent = strength.label;
+    elements.securityLevel.textContent = strength.label;
 
-  elements.strengthBars.forEach((bar, index) => {
-    bar.style.opacity = index < strength.bars ? "1" : "0.18";
-  });
+    elements.strengthBars.forEach((bar, index) => {
+      bar.style.opacity = index < strength.bars ? "1" : "0.18";
+    });
 
-  elements.securityLevel.setAttribute(
-    "aria-label",
-    `Security level: ${strength.label}`,
-  );
+    elements.securityLevel.setAttribute(
+      "aria-label",
+      `Security level: ${strength.label}`,
+    );
+  } catch (error) {
+    console.error("Password analysis failed:", error);
+
+    elements.entropyValue.textContent = "—";
+    elements.securityLevel.textContent = "Unavailable";
+
+    elements.strengthBars.forEach((bar) => {
+      bar.style.opacity = "0.18";
+    });
+
+    setAppStatus("Password analysis is temporarily unavailable.");
+  }
 }
 
 /* =========================================================
-   07. CONTROLE DE COMPRIMENTO
+   08. CONTROLE DE COMPRIMENTO
    ========================================================= */
 
 function updateLength() {
@@ -163,7 +184,6 @@ function updateLength() {
   const progress = ((value - minimum) / (maximum - minimum)) * 100;
 
   elements.lengthValue.textContent = value;
-
   elements.analysisLength.textContent = value;
 
   elements.lengthTrack.style.setProperty("--length-progress", `${progress}%`);
@@ -175,7 +195,7 @@ function updateLength() {
 }
 
 /* =========================================================
-   08. CONTROLES ON / OFF
+   09. CONTROLES ON / OFF
    ========================================================= */
 
 function countActiveCharacterSets() {
@@ -190,11 +210,6 @@ function toggleConfigButton(button) {
   const isActive = button.getAttribute("aria-pressed") === "true";
 
   const isCharacterOption = optionName !== "excludeAmbiguous";
-
-  /*
-    Pelo menos uma categoria principal precisa
-    permanecer ativa.
-  */
 
   if (isCharacterOption && isActive && countActiveCharacterSets() === 1) {
     return;
@@ -215,7 +230,7 @@ function toggleConfigButton(button) {
 }
 
 /* =========================================================
-   09. AJUSTE RESPONSIVO DA SENHA
+   10. AJUSTE RESPONSIVO DA SENHA
    ========================================================= */
 
 const PASSWORD_FONT = Object.freeze({
@@ -245,11 +260,6 @@ function fitPasswordToDisplay() {
 
   let bestSize = minimum;
 
-  /*
-    Busca binária pelo maior tamanho de fonte
-    que mantém a senha inteira dentro do campo.
-  */
-
   while (maximum - minimum > PASSWORD_FONT.precision) {
     const candidate = (minimum + maximum) / 2;
 
@@ -267,7 +277,7 @@ function fitPasswordToDisplay() {
 }
 
 /* =========================================================
-   10. GERAÇÃO DA SENHA
+   11. GERAÇÃO DA SENHA
    ========================================================= */
 
 function createPassword() {
@@ -282,25 +292,39 @@ function createPassword() {
       ...options,
     };
 
+    generationFailed = false;
+
+    elements.copyButton.disabled = false;
+
+    setAppStatus("");
+
     fitPasswordToDisplay();
     updateGenerationState();
   } catch (error) {
     console.error("Password generation failed:", error);
+
+    generationFailed = true;
+
+    /*
+      Uma falha não deixa uma senha antiga parecendo
+      pertencer à tentativa atual.
+    */
+
+    elements.passwordOutput.textContent = "";
+
+    generatedPasswordOptions = null;
+
+    elements.copyButton.disabled = true;
+
+    setAppStatus("Unable to generate a secure password. Please try again.");
+
+    updateGenerationState();
   }
 }
 
 /* =========================================================
-   11. FEEDBACK DE CÓPIA
+   12. FEEDBACK DE CÓPIA
    ========================================================= */
-
-/*
-  O feedback visual também é refletido em aria-label,
-  melhorando a informação disponível para tecnologias
-  assistivas.
-
-  O timer anterior é cancelado para evitar conflitos
-  em cliques sucessivos.
-*/
 
 function showCopyFeedback(message) {
   if (copyFeedbackTimeout !== null) {
@@ -324,7 +348,7 @@ function showCopyFeedback(message) {
 }
 
 /* =========================================================
-   12. FALLBACK DE CÓPIA
+   13. FALLBACK DE CÓPIA
    ========================================================= */
 
 function copyWithFallback(text) {
@@ -354,13 +378,15 @@ function copyWithFallback(text) {
 }
 
 /* =========================================================
-   13. CÓPIA PARA A ÁREA DE TRANSFERÊNCIA
+   14. CÓPIA PARA A ÁREA DE TRANSFERÊNCIA
    ========================================================= */
 
 async function copyPassword() {
   const password = elements.passwordOutput.textContent;
 
   if (!password) {
+    setAppStatus("There is no password available to copy.");
+
     return;
   }
 
@@ -374,14 +400,18 @@ async function copyPassword() {
       copyWithFallback(password);
     }
 
+    setAppStatus("");
     showCopyFeedback("Copied!");
   } catch (error) {
     try {
       copyWithFallback(password);
 
+      setAppStatus("");
       showCopyFeedback("Copied!");
     } catch (fallbackError) {
       console.error("Clipboard copy failed:", error, fallbackError);
+
+      setAppStatus("Unable to copy automatically. Please try again.");
 
       showCopyFeedback("Copy failed");
     }
@@ -389,7 +419,7 @@ async function copyPassword() {
 }
 
 /* =========================================================
-   14. OBSERVAÇÃO DO LAYOUT
+   15. OBSERVAÇÃO DO LAYOUT
    ========================================================= */
 
 const passwordResizeObserver = new ResizeObserver(() => {
@@ -399,7 +429,7 @@ const passwordResizeObserver = new ResizeObserver(() => {
 passwordResizeObserver.observe(elements.passwordDisplay);
 
 /* =========================================================
-   15. EVENTOS
+   16. EVENTOS
    ========================================================= */
 
 elements.lengthInput.addEventListener("input", updateLength);
@@ -415,10 +445,17 @@ elements.generateButton.addEventListener("click", createPassword);
 elements.copyButton.addEventListener("click", copyPassword);
 
 /* =========================================================
-   16. INICIALIZAÇÃO
+   17. INICIALIZAÇÃO
    ========================================================= */
 
 elements.copyButton.setAttribute("aria-label", "Copy password to clipboard");
+
+/*
+  Até existir uma senha válida, o botão Copy
+  não deve oferecer uma ação impossível.
+*/
+
+elements.copyButton.disabled = true;
 
 updateLength();
 createPassword();
