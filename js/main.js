@@ -24,9 +24,7 @@ const elements = {
   analysisLength: document.querySelector("#analysis-length"),
   lengthTrack: document.querySelector(".length-control__track"),
 
-  configButtons: document.querySelectorAll(
-    ".config-row button[data-option]",
-  ),
+  configButtons: document.querySelectorAll(".config-row button[data-option]"),
 
   passwordDisplay: document.querySelector(".password-display"),
   passwordOutput: document.querySelector("#generated-password"),
@@ -45,14 +43,22 @@ const elements = {
 
 let copyFeedbackTimeout = null;
 
+/*
+  Guarda a configuração exata utilizada para gerar
+  a senha atualmente exibida.
+
+  Isso permite saber se as configurações atuais
+  ainda correspondem à senha que está na tela.
+*/
+
+let generatedPasswordOptions = null;
+
 /* =========================================================
    03. LEITURA DAS CONFIGURAÇÕES
    ========================================================= */
 
 function isOptionEnabled(optionName) {
-  const button = document.querySelector(
-    `[data-option="${optionName}"]`,
-  );
+  const button = document.querySelector(`[data-option="${optionName}"]`);
 
   return button?.getAttribute("aria-pressed") === "true";
 }
@@ -70,23 +76,82 @@ function getPasswordOptions() {
 }
 
 /* =========================================================
-   04. ANÁLISE
+   04. COMPARAÇÃO DAS CONFIGURAÇÕES
+   ========================================================= */
+
+/*
+  Compara duas configurações do gerador.
+
+  Não utilizamos apenas uma flag "alterado = true",
+  porque o usuário pode modificar uma opção e depois
+  retornar exatamente à configuração usada na senha atual.
+*/
+
+function passwordOptionsAreEqual(firstOptions, secondOptions) {
+  if (!firstOptions || !secondOptions) {
+    return false;
+  }
+
+  return (
+    firstOptions.length === secondOptions.length &&
+    firstOptions.uppercase === secondOptions.uppercase &&
+    firstOptions.lowercase === secondOptions.lowercase &&
+    firstOptions.numbers === secondOptions.numbers &&
+    firstOptions.symbols === secondOptions.symbols &&
+    firstOptions.excludeAmbiguous === secondOptions.excludeAmbiguous
+  );
+}
+
+/* =========================================================
+   05. ESTADO DA GERAÇÃO
+   ========================================================= */
+
+/*
+  A senha exibida não é substituída automaticamente
+  quando uma configuração muda.
+
+  Em vez disso, o botão informa que existe uma nova
+  configuração pronta para gerar outra senha.
+*/
+
+function updateGenerationState() {
+  const currentOptions = getPasswordOptions();
+
+  const isStale =
+    generatedPasswordOptions !== null &&
+    !passwordOptionsAreEqual(currentOptions, generatedPasswordOptions);
+
+  elements.generateButton.dataset.stale = String(isStale);
+
+  elements.generateButton.textContent = isStale
+    ? "Generate updated password"
+    : "Generate new password";
+
+  elements.generateButton.setAttribute(
+    "aria-label",
+    isStale
+      ? "Generate a password using the updated configuration"
+      : "Generate a new password",
+  );
+}
+
+/* =========================================================
+   06. ANÁLISE
    ========================================================= */
 
 function updateAnalysis() {
   const options = getPasswordOptions();
 
   const entropy = calculateEntropy(options);
+
   const strength = evaluatePasswordStrength(entropy);
 
   elements.entropyValue.textContent = Math.round(entropy);
+
   elements.securityLevel.textContent = strength.label;
 
   elements.strengthBars.forEach((bar, index) => {
-    bar.style.opacity =
-      index < strength.bars
-        ? "1"
-        : "0.18";
+    bar.style.opacity = index < strength.bars ? "1" : "0.18";
   });
 
   elements.securityLevel.setAttribute(
@@ -96,44 +161,36 @@ function updateAnalysis() {
 }
 
 /* =========================================================
-   05. CONTROLE DE COMPRIMENTO
+   07. CONTROLE DE COMPRIMENTO
    ========================================================= */
 
 function updateLength() {
   const value = Number(elements.lengthInput.value);
+
   const minimum = Number(elements.lengthInput.min);
+
   const maximum = Number(elements.lengthInput.max);
 
-  const progress =
-    ((value - minimum) / (maximum - minimum)) * 100;
+  const progress = ((value - minimum) / (maximum - minimum)) * 100;
 
   elements.lengthValue.textContent = value;
+
   elements.analysisLength.textContent = value;
 
-  elements.lengthTrack.style.setProperty(
-    "--length-progress",
-    `${progress}%`,
-  );
+  elements.lengthTrack.style.setProperty("--length-progress", `${progress}%`);
 
-  elements.lengthInput.setAttribute(
-    "aria-valuetext",
-    `${value} characters`,
-  );
+  elements.lengthInput.setAttribute("aria-valuetext", `${value} characters`);
 
   updateAnalysis();
+  updateGenerationState();
 }
 
 /* =========================================================
-   06. CONTROLES ON / OFF
+   08. CONTROLES ON / OFF
    ========================================================= */
 
 function countActiveCharacterSets() {
-  const characterOptions = [
-    "uppercase",
-    "lowercase",
-    "numbers",
-    "symbols",
-  ];
+  const characterOptions = ["uppercase", "lowercase", "numbers", "symbols"];
 
   return characterOptions.filter(isOptionEnabled).length;
 }
@@ -141,44 +198,35 @@ function countActiveCharacterSets() {
 function toggleConfigButton(button) {
   const optionName = button.dataset.option;
 
-  const isActive =
-    button.getAttribute("aria-pressed") === "true";
+  const isActive = button.getAttribute("aria-pressed") === "true";
 
-  const isCharacterOption =
-    optionName !== "excludeAmbiguous";
+  const isCharacterOption = optionName !== "excludeAmbiguous";
 
   /*
     Pelo menos uma das quatro categorias principais
     precisa permanecer ativa.
   */
 
-  if (
-    isCharacterOption &&
-    isActive &&
-    countActiveCharacterSets() === 1
-  ) {
+  if (isCharacterOption && isActive && countActiveCharacterSets() === 1) {
     return;
   }
 
   const newState = !isActive;
 
-  button.setAttribute(
-    "aria-pressed",
-    String(newState),
-  );
+  button.setAttribute("aria-pressed", String(newState));
 
   const label = button.querySelector("span");
 
   if (label) {
-    label.textContent =
-      newState ? "On" : "Off";
+    label.textContent = newState ? "On" : "Off";
   }
 
   updateAnalysis();
+  updateGenerationState();
 }
 
 /* =========================================================
-   07. AJUSTE RESPONSIVO DA SENHA
+   09. AJUSTE RESPONSIVO DA SENHA
    ========================================================= */
 
 const PASSWORD_FONT = Object.freeze({
@@ -189,13 +237,10 @@ const PASSWORD_FONT = Object.freeze({
 
 function fitPasswordToDisplay() {
   const output = elements.passwordOutput;
+
   const display = elements.passwordDisplay;
 
-  if (
-    !output ||
-    !display ||
-    !output.textContent
-  ) {
+  if (!output || !display || !output.textContent) {
     return;
   }
 
@@ -205,29 +250,23 @@ function fitPasswordToDisplay() {
     return;
   }
 
+  let minimum = PASSWORD_FONT.minimum;
+
+  let maximum = PASSWORD_FONT.maximum;
+
+  let bestSize = minimum;
+
   /*
     Busca binária pelo maior tamanho de fonte
     que mantém a senha inteira dentro do campo.
   */
 
-  let minimum = PASSWORD_FONT.minimum;
-  let maximum = PASSWORD_FONT.maximum;
-  let bestSize = minimum;
+  while (maximum - minimum > PASSWORD_FONT.precision) {
+    const candidate = (minimum + maximum) / 2;
 
-  while (
-    maximum - minimum >
-    PASSWORD_FONT.precision
-  ) {
-    const candidate =
-      (minimum + maximum) / 2;
+    output.style.fontSize = `${candidate}px`;
 
-    output.style.fontSize =
-      `${candidate}px`;
-
-    if (
-      output.scrollWidth <=
-      availableWidth
-    ) {
+    if (output.scrollWidth <= availableWidth) {
       bestSize = candidate;
       minimum = candidate;
     } else {
@@ -235,100 +274,94 @@ function fitPasswordToDisplay() {
     }
   }
 
-  output.style.fontSize =
-    `${bestSize}px`;
+  output.style.fontSize = `${bestSize}px`;
 }
 
 /* =========================================================
-   08. GERAÇÃO DA SENHA
+   10. GERAÇÃO DA SENHA
    ========================================================= */
 
 function createPassword() {
   try {
     const options = getPasswordOptions();
 
-    const password =
-      generatePassword(options);
+    const password = generatePassword(options);
 
-    elements.passwordOutput.textContent =
-      password;
+    elements.passwordOutput.textContent = password;
+
+    /*
+      Guardamos uma cópia da configuração.
+
+      Não mantemos apenas a referência do objeto,
+      evitando que alterações futuras contaminem
+      o estado associado à senha atual.
+    */
+
+    generatedPasswordOptions = {
+      ...options,
+    };
 
     fitPasswordToDisplay();
+    updateGenerationState();
   } catch (error) {
-    console.error(
-      "Password generation failed:",
-      error,
-    );
+    console.error("Password generation failed:", error);
   }
 }
 
 /* =========================================================
-   09. FEEDBACK DE CÓPIA
+   11. FEEDBACK DE CÓPIA
    ========================================================= */
 
 function showCopyFeedback(message) {
-  if (
-    copyFeedbackTimeout !== null
-  ) {
+  if (copyFeedbackTimeout !== null) {
     clearTimeout(copyFeedbackTimeout);
   }
 
-  elements.copyButton.textContent =
-    message;
+  elements.copyButton.textContent = message;
 
-  copyFeedbackTimeout =
-    window.setTimeout(() => {
-      elements.copyButton.textContent =
-        "Copy to clipboard";
+  copyFeedbackTimeout = window.setTimeout(() => {
+    elements.copyButton.textContent = "Copy to clipboard";
 
-      copyFeedbackTimeout = null;
-    }, 1400);
+    copyFeedbackTimeout = null;
+  }, 1400);
 }
 
 /* =========================================================
-   10. FALLBACK DE CÓPIA
+   12. FALLBACK DE CÓPIA
    ========================================================= */
 
 function copyWithFallback(text) {
-  const temporaryTextarea =
-    document.createElement("textarea");
+  const temporaryTextarea = document.createElement("textarea");
 
   temporaryTextarea.value = text;
 
-  temporaryTextarea.setAttribute(
-    "readonly",
-    "",
-  );
+  temporaryTextarea.setAttribute("readonly", "");
 
   temporaryTextarea.style.position = "fixed";
+
   temporaryTextarea.style.opacity = "0";
+
   temporaryTextarea.style.pointerEvents = "none";
 
-  document.body.appendChild(
-    temporaryTextarea,
-  );
+  document.body.appendChild(temporaryTextarea);
 
   temporaryTextarea.select();
 
-  const copied =
-    document.execCommand("copy");
+  const copied = document.execCommand("copy");
 
   temporaryTextarea.remove();
 
   if (!copied) {
-    throw new Error(
-      "Fallback clipboard copy failed.",
-    );
+    throw new Error("Fallback clipboard copy failed.");
   }
 }
 
 /* =========================================================
-   11. CÓPIA PARA A ÁREA DE TRANSFERÊNCIA
+   13. CÓPIA PARA A ÁREA DE TRANSFERÊNCIA
    ========================================================= */
 
 async function copyPassword() {
-  const password =
-    elements.passwordOutput.textContent;
+  const password = elements.passwordOutput.textContent;
 
   if (!password) {
     return;
@@ -337,12 +370,9 @@ async function copyPassword() {
   try {
     if (
       navigator.clipboard &&
-      typeof navigator.clipboard.writeText ===
-        "function"
+      typeof navigator.clipboard.writeText === "function"
     ) {
-      await navigator.clipboard.writeText(
-        password,
-      );
+      await navigator.clipboard.writeText(password);
     } else {
       copyWithFallback(password);
     }
@@ -354,11 +384,7 @@ async function copyPassword() {
 
       showCopyFeedback("Copied!");
     } catch (fallbackError) {
-      console.error(
-        "Clipboard copy failed:",
-        error,
-        fallbackError,
-      );
+      console.error("Clipboard copy failed:", error, fallbackError);
 
       showCopyFeedback("Copy failed");
     }
@@ -366,48 +392,33 @@ async function copyPassword() {
 }
 
 /* =========================================================
-   12. OBSERVAÇÃO DO LAYOUT
+   14. OBSERVAÇÃO DO LAYOUT
    ========================================================= */
 
-const passwordResizeObserver =
-  new ResizeObserver(() => {
-    fitPasswordToDisplay();
-  });
-
-passwordResizeObserver.observe(
-  elements.passwordDisplay,
-);
-
-/* =========================================================
-   13. EVENTOS
-   ========================================================= */
-
-elements.lengthInput.addEventListener(
-  "input",
-  updateLength,
-);
-
-elements.configButtons.forEach((button) => {
-  button.addEventListener(
-    "click",
-    () => {
-      toggleConfigButton(button);
-    },
-  );
+const passwordResizeObserver = new ResizeObserver(() => {
+  fitPasswordToDisplay();
 });
 
-elements.generateButton.addEventListener(
-  "click",
-  createPassword,
-);
-
-elements.copyButton.addEventListener(
-  "click",
-  copyPassword,
-);
+passwordResizeObserver.observe(elements.passwordDisplay);
 
 /* =========================================================
-   14. INICIALIZAÇÃO
+   15. EVENTOS
+   ========================================================= */
+
+elements.lengthInput.addEventListener("input", updateLength);
+
+elements.configButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    toggleConfigButton(button);
+  });
+});
+
+elements.generateButton.addEventListener("click", createPassword);
+
+elements.copyButton.addEventListener("click", copyPassword);
+
+/* =========================================================
+   16. INICIALIZAÇÃO
    ========================================================= */
 
 updateLength();
