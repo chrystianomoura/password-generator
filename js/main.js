@@ -11,12 +11,54 @@ import { copyTextToClipboard } from "./clipboard.js";
    Responsabilidade:
    conectar a interface aos módulos da aplicação.
 
-   A geração, a análise, a classificação de segurança
-   e a lógica de clipboard permanecem isoladas.
+   Este arquivo coordena:
+   - leitura dos controles;
+   - atualização da interface;
+   - geração da senha;
+   - análise de entropia e força;
+   - feedback de cópia;
+   - adaptação visual da senha ao espaço disponível.
+
+   Regras de domínio permanecem nos módulos especializados.
    ========================================================= */
 
 /* =========================================================
-   01. ELEMENTOS DA INTERFACE
+   01. CONSTANTES DA INTERFACE
+   ---------------------------------------------------------
+   Valores compartilhados ficam centralizados para evitar
+   strings e listas repetidas ao longo do controlador.
+   ========================================================= */
+
+const CHARACTER_OPTIONS = Object.freeze([
+  "uppercase",
+  "lowercase",
+  "numbers",
+  "symbols",
+]);
+
+const PASSWORD_FONT = Object.freeze({
+  singleLineMinimum: 16,
+  singleLineMaximum: 80,
+  wrappedMinimum: 12,
+  wrappedMaximum: 40,
+  precision: 0.25,
+});
+
+const COPY_FEEDBACK_DURATION = 1400;
+
+const COPY_LABELS = Object.freeze({
+  default: "Copy to clipboard",
+  copied: "Copied!",
+  failed: "Copy failed",
+});
+
+/* =========================================================
+   02. ELEMENTOS DA INTERFACE
+   ---------------------------------------------------------
+   As referências ao DOM são obtidas uma única vez.
+
+   Isso deixa claro quais elementos o controlador espera
+   encontrar e evita repetir querySelector durante o uso.
    ========================================================= */
 
 const elements = {
@@ -40,8 +82,69 @@ const elements = {
   strengthBars: document.querySelectorAll("#strength-bars span"),
 };
 
+/*
+  Os botões de configuração também são indexados pelo nome
+  da opção.
+
+  Assim, consultar "uppercase", "symbols" etc. não exige
+  uma nova busca no documento.
+*/
+
+const configButtonsByOption = new Map(
+  [...elements.configButtons].map((button) => [button.dataset.option, button]),
+);
+
 /* =========================================================
-   02. ESTADO LOCAL DA INTERFACE
+   03. VALIDAÇÃO DA INTERFACE
+   ---------------------------------------------------------
+   Como o HTML e o JavaScript evoluem separadamente, falhar
+   cedo com uma mensagem clara torna erros de integração
+   muito mais fáceis de diagnosticar.
+   ========================================================= */
+
+function assertRequiredElements() {
+  const requiredElements = {
+    lengthInput: elements.lengthInput,
+    lengthValue: elements.lengthValue,
+    analysisLength: elements.analysisLength,
+    lengthTrack: elements.lengthTrack,
+    passwordDisplay: elements.passwordDisplay,
+    passwordOutput: elements.passwordOutput,
+    generateButton: elements.generateButton,
+    copyButton: elements.copyButton,
+    appStatus: elements.appStatus,
+    entropyValue: elements.entropyValue,
+    securityLevel: elements.securityLevel,
+  };
+
+  const missingElements = Object.entries(requiredElements)
+    .filter(([, element]) => !element)
+    .map(([name]) => name);
+
+  if (elements.configButtons.length === 0) {
+    missingElements.push("configButtons");
+  }
+
+  if (elements.strengthBars.length === 0) {
+    missingElements.push("strengthBars");
+  }
+
+  if (missingElements.length > 0) {
+    throw new Error(
+      `Password Generator initialization failed. Missing elements: ${missingElements.join(
+        ", ",
+      )}.`,
+    );
+  }
+}
+
+/* =========================================================
+   04. ESTADO LOCAL DA INTERFACE
+   ---------------------------------------------------------
+   Este estado pertence apenas à camada de apresentação.
+
+   A senha original é mantida separada do DOM porque sua
+   representação visual pode ser dividida em duas linhas.
    ========================================================= */
 
 let copyFeedbackTimeout = null;
@@ -50,7 +153,7 @@ let generatedPassword = "";
 let generationFailed = false;
 
 /* =========================================================
-   03. STATUS DA APLICAÇÃO
+   05. STATUS DA APLICAÇÃO
    ========================================================= */
 
 function setAppStatus(message = "") {
@@ -58,11 +161,11 @@ function setAppStatus(message = "") {
 }
 
 /* =========================================================
-   04. LEITURA DAS CONFIGURAÇÕES
+   06. LEITURA DAS CONFIGURAÇÕES
    ========================================================= */
 
 function isOptionEnabled(optionName) {
-  const button = document.querySelector(`[data-option="${optionName}"]`);
+  const button = configButtonsByOption.get(optionName);
 
   return button?.getAttribute("aria-pressed") === "true";
 }
@@ -80,7 +183,10 @@ function getPasswordOptions() {
 }
 
 /* =========================================================
-   05. COMPARAÇÃO DAS CONFIGURAÇÕES
+   07. COMPARAÇÃO DAS CONFIGURAÇÕES
+   ---------------------------------------------------------
+   A interface precisa saber se a senha exibida foi criada
+   com as mesmas opções atualmente selecionadas.
    ========================================================= */
 
 function passwordOptionsAreEqual(firstOptions, secondOptions) {
@@ -99,7 +205,7 @@ function passwordOptionsAreEqual(firstOptions, secondOptions) {
 }
 
 /* =========================================================
-   06. ESTADO DA GERAÇÃO
+   08. ESTADO DA GERAÇÃO
    ========================================================= */
 
 function updateGenerationState() {
@@ -108,8 +214,6 @@ function updateGenerationState() {
   const isStale =
     generatedPasswordOptions !== null &&
     !passwordOptionsAreEqual(currentOptions, generatedPasswordOptions);
-
-  elements.generateButton.dataset.stale = String(isStale);
 
   if (generationFailed) {
     elements.generateButton.textContent = "Try again";
@@ -135,7 +239,10 @@ function updateGenerationState() {
 }
 
 /* =========================================================
-   07. ANÁLISE
+   09. ANÁLISE
+   ---------------------------------------------------------
+   Entropia e classificação são calculadas pelos módulos de
+   domínio. Este controlador apenas apresenta o resultado.
    ========================================================= */
 
 function updateAnalysis() {
@@ -143,7 +250,6 @@ function updateAnalysis() {
     const options = getPasswordOptions();
 
     const entropy = calculateEntropy(options);
-
     const strength = evaluatePasswordStrength(entropy);
 
     elements.entropyValue.textContent = Math.round(entropy);
@@ -168,17 +274,27 @@ function updateAnalysis() {
       bar.style.opacity = "0.18";
     });
 
+    elements.securityLevel.setAttribute(
+      "aria-label",
+      "Security level unavailable",
+    );
+
     setAppStatus("Password analysis is temporarily unavailable.");
   }
 }
 
 /* =========================================================
-   08. CONTROLE DE COMPRIMENTO
+   10. CONTROLE DE COMPRIMENTO
+   ---------------------------------------------------------
+   O input range é a fonte do valor.
+
+   Além dos números visíveis, atualizamos:
+   - a variável CSS que desenha o progresso;
+   - aria-valuetext para uma leitura mais natural.
    ========================================================= */
 
 function updateLength() {
   const value = Number(elements.lengthInput.value);
-
   const minimum = Number(elements.lengthInput.min);
   const maximum = Number(elements.lengthInput.max);
 
@@ -196,13 +312,24 @@ function updateLength() {
 }
 
 /* =========================================================
-   09. CONTROLES ON / OFF
+   11. CONTROLES ON / OFF
+   ---------------------------------------------------------
+   aria-pressed é a fonte do estado dos botões toggle.
+
+   O texto On/Off é apenas a representação visual desse
+   mesmo estado.
    ========================================================= */
 
 function countActiveCharacterSets() {
-  const characterOptions = ["uppercase", "lowercase", "numbers", "symbols"];
+  return CHARACTER_OPTIONS.filter(isOptionEnabled).length;
+}
 
-  return characterOptions.filter(isOptionEnabled).length;
+function updateConfigButtonLabel(button, isActive) {
+  const label = button.querySelector("span");
+
+  if (label) {
+    label.textContent = isActive ? "On" : "Off";
+  }
 }
 
 function toggleConfigButton(button) {
@@ -210,7 +337,15 @@ function toggleConfigButton(button) {
 
   const isActive = button.getAttribute("aria-pressed") === "true";
 
-  const isCharacterOption = optionName !== "excludeAmbiguous";
+  const isCharacterOption = CHARACTER_OPTIONS.includes(optionName);
+
+  /*
+    O gerador precisa de pelo menos um conjunto de
+    caracteres ativo.
+
+    Por isso o último conjunto disponível não pode ser
+    desativado pela interface.
+  */
 
   if (isCharacterOption && isActive && countActiveCharacterSets() === 1) {
     return;
@@ -220,43 +355,28 @@ function toggleConfigButton(button) {
 
   button.setAttribute("aria-pressed", String(newState));
 
-  const label = button.querySelector("span");
-
-  if (label) {
-    label.textContent = newState ? "On" : "Off";
-  }
+  updateConfigButtonLabel(button, newState);
 
   updateAnalysis();
   updateGenerationState();
 }
 
 /* =========================================================
-   10. AJUSTE RESPONSIVO DA SENHA
+   12. AJUSTE RESPONSIVO DA SENHA
    ---------------------------------------------------------
-   Mantém a senha em uma única linha sempre que houver
-   espaço suficiente.
+   Objetivo:
+   exibir a maior fonte possível sem cortar caracteres.
 
-   Quando nem o menor tamanho aceitável consegue acomodar
-   a senha inteira, a exibição passa para duas linhas.
+   Estratégia:
+   1. tenta uma única linha;
+   2. se nem 16px couber, divide a representação em duas;
+   3. usa busca binária para encontrar o maior font-size;
+   4. ao ganhar espaço novamente, volta para uma linha.
 
-   No modo de duas linhas, a senha é dividida exatamente
-   ao meio:
-
-   - comprimento par: metade em cima / metade embaixo;
-   - comprimento ímpar: a linha superior recebe 1 caractere
-     a mais.
-
-   A divisão é apenas visual. A senha original permanece
-   intacta no estado da aplicação e no clipboard.
+   A divisão é exclusivamente visual:
+   a senha original permanece intacta em generatedPassword
+   e é essa versão que vai para o clipboard.
    ========================================================= */
-
-const PASSWORD_FONT = Object.freeze({
-  singleLineMinimum: 16,
-  singleLineMaximum: 80,
-  wrappedMinimum: 12,
-  wrappedMaximum: 40,
-  precision: 0.25,
-});
 
 function resetPasswordDisplayMode() {
   const output = elements.passwordOutput;
@@ -268,6 +388,12 @@ function resetPasswordDisplayMode() {
 
   output.style.fontSize = "";
 
+  /*
+    textContent seria suficiente aqui, mas replaceChildren()
+    deixa explícito que qualquer estrutura visual criada para
+    o modo de duas linhas deve ser completamente substituída.
+  */
+
   output.replaceChildren(document.createTextNode(generatedPassword));
 }
 
@@ -276,11 +402,9 @@ function renderWrappedPassword() {
   const display = elements.passwordDisplay;
 
   /*
-    Math.ceil faz com que, em comprimentos ímpares,
-    a primeira linha receba apenas um caractere a mais.
+    Math.ceil mantém as linhas equilibradas.
 
     Exemplos:
-
     44 -> 22 + 22
     64 -> 32 + 32
     63 -> 32 + 31
@@ -312,6 +436,13 @@ function renderWrappedPassword() {
   return [firstLine, secondLine];
 }
 
+/*
+  Busca binária evita testar cada tamanho possível um por um.
+
+  O callback fits(candidate) define o que significa "caber"
+  para cada modo de exibição.
+*/
+
 function findLargestFontSizeThatFits(minimum, maximum, fits) {
   let lower = minimum;
   let upper = maximum;
@@ -335,7 +466,7 @@ function fitPasswordToDisplay() {
   const output = elements.passwordOutput;
   const display = elements.passwordDisplay;
 
-  if (!output || !display || !generatedPassword) {
+  if (!generatedPassword) {
     return;
   }
 
@@ -346,11 +477,10 @@ function fitPasswordToDisplay() {
   }
 
   /*
-    Sempre começamos tentando uma única linha.
+    Sempre reiniciamos pelo modo de linha única.
 
-    Isso permite que uma senha dividida no mobile volte
-    automaticamente para uma linha quando a viewport
-    ganhar espaço novamente.
+    Isso é o que permite responder corretamente a resize,
+    rotação de tela e mudanças de breakpoint.
   */
 
   resetPasswordDisplayMode();
@@ -376,10 +506,10 @@ function fitPasswordToDisplay() {
   }
 
   /*
-    Não cabe em uma linha.
+    Uma única linha deixou de ser viável.
 
-    A representação visual passa para duas metades
-    equilibradas.
+    A senha é renderizada em duas metades e o mesmo processo
+    procura o maior tamanho que permita às duas linhas caber.
   */
 
   const wrappedLines = renderWrappedPassword();
@@ -398,22 +528,19 @@ function fitPasswordToDisplay() {
 }
 
 /* =========================================================
-   11. GERAÇÃO DA SENHA
+   13. GERAÇÃO DA SENHA
    ========================================================= */
 
 function createPassword() {
   try {
     const options = getPasswordOptions();
-
     const password = generatePassword(options);
 
     /*
-      Guardamos a senha original separadamente da
-      representação visual.
+      generatedPassword é a fonte verdadeira da senha.
 
-      Isso é importante porque, no modo responsivo,
-      #generated-password passa a conter dois elementos
-      visuais separados.
+      O conteúdo do DOM pode assumir outra estrutura apenas
+      para fins de apresentação responsiva.
     */
 
     generatedPassword = password;
@@ -437,16 +564,9 @@ function createPassword() {
 
     generationFailed = true;
     generatedPassword = "";
-
-    /*
-      Uma falha não deixa uma senha antiga parecendo
-      pertencer à tentativa atual.
-    */
-
-    elements.passwordOutput.textContent = "";
-
     generatedPasswordOptions = null;
 
+    elements.passwordOutput.textContent = "";
     elements.copyButton.disabled = true;
 
     setAppStatus("Unable to generate a secure password. Please try again.");
@@ -456,112 +576,151 @@ function createPassword() {
 }
 
 /* =========================================================
-   12. FEEDBACK DE CÓPIA
+   14. FEEDBACK DE CÓPIA
    ========================================================= */
+
+function setCopyButtonLabel(label) {
+  elements.copyButton.textContent = label;
+
+  elements.copyButton.setAttribute("aria-label", label);
+}
 
 function showCopyFeedback(message) {
   if (copyFeedbackTimeout !== null) {
     clearTimeout(copyFeedbackTimeout);
   }
 
-  elements.copyButton.textContent = message;
-
-  elements.copyButton.setAttribute("aria-label", message);
+  setCopyButtonLabel(message);
 
   copyFeedbackTimeout = window.setTimeout(() => {
-    elements.copyButton.textContent = "Copy to clipboard";
-
-    elements.copyButton.setAttribute(
-      "aria-label",
-      "Copy password to clipboard",
-    );
+    setCopyButtonLabel(COPY_LABELS.default);
 
     copyFeedbackTimeout = null;
-  }, 1400);
+  }, COPY_FEEDBACK_DURATION);
 }
 
 /* =========================================================
-   13. CÓPIA PARA A ÁREA DE TRANSFERÊNCIA
+   15. CÓPIA PARA A ÁREA DE TRANSFERÊNCIA
+   ---------------------------------------------------------
+   Copiamos generatedPassword, não textContent.
+
+   Isso evita qualquer dependência da representação visual
+   em uma ou duas linhas.
    ========================================================= */
 
 async function copyPassword() {
-  /*
-    Copiamos a senha original armazenada no estado.
-
-    Não usamos textContent do elemento visual porque,
-    quando a senha está dividida em duas linhas, o DOM
-    possui dois elementos separados.
-  */
-
-  const password = generatedPassword;
-
-  if (!password) {
+  if (!generatedPassword) {
     setAppStatus("There is no password available to copy.");
 
     return;
   }
 
   try {
-    await copyTextToClipboard(password);
+    await copyTextToClipboard(generatedPassword);
 
     setAppStatus("");
-    showCopyFeedback("Copied!");
+
+    showCopyFeedback(COPY_LABELS.copied);
   } catch (error) {
     console.error("Clipboard copy failed:", error);
 
     setAppStatus("Unable to copy automatically. Please try again.");
 
-    showCopyFeedback("Copy failed");
+    showCopyFeedback(COPY_LABELS.failed);
   }
 }
 
 /* =========================================================
-   14. OBSERVAÇÃO DO LAYOUT
+   16. OBSERVAÇÃO DO LAYOUT
+   ---------------------------------------------------------
+   ResizeObserver acompanha mudanças reais no espaço do
+   componente, não apenas eventos de resize da janela.
+
+   Isso cobre:
+   - alteração da viewport;
+   - rotação do dispositivo;
+   - mudanças provocadas por breakpoints;
+   - outras alterações de layout que mudem a largura.
    ========================================================= */
 
-const passwordResizeObserver = new ResizeObserver(() => {
-  fitPasswordToDisplay();
-});
+function observePasswordDisplay() {
+  if (typeof ResizeObserver !== "function") {
+    /*
+      Navegadores modernos suportam ResizeObserver.
 
-passwordResizeObserver.observe(elements.passwordDisplay);
+      O fallback mantém a adaptação funcionando em ambientes
+      que ofereçam apenas o evento resize da janela.
+    */
 
-/* =========================================================
-   15. EVENTOS
-   ========================================================= */
+    window.addEventListener("resize", fitPasswordToDisplay);
 
-elements.lengthInput.addEventListener("input", updateLength);
+    return;
+  }
 
-elements.configButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    toggleConfigButton(button);
-  });
-});
-
-elements.generateButton.addEventListener("click", createPassword);
-
-elements.copyButton.addEventListener("click", copyPassword);
-
-/* =========================================================
-   16. INICIALIZAÇÃO
-   ========================================================= */
-
-elements.copyButton.setAttribute("aria-label", "Copy password to clipboard");
-
-elements.copyButton.disabled = true;
-
-updateLength();
-createPassword();
-
-/*
-  As fontes podem terminar de carregar depois da primeira
-  medição.
-
-  Quando isso acontece, recalculamos a apresentação usando
-  as métricas tipográficas definitivas.
-*/
-
-if (document.fonts?.ready) {
-  document.fonts.ready.then(() => {
+  const passwordResizeObserver = new ResizeObserver(() => {
     fitPasswordToDisplay();
   });
+
+  passwordResizeObserver.observe(elements.passwordDisplay);
 }
+
+/* =========================================================
+   17. EVENTOS
+   ========================================================= */
+
+function bindEvents() {
+  elements.lengthInput.addEventListener("input", updateLength);
+
+  elements.configButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      toggleConfigButton(button);
+    });
+  });
+
+  elements.generateButton.addEventListener("click", createPassword);
+
+  elements.copyButton.addEventListener("click", copyPassword);
+}
+
+/* =========================================================
+   18. INICIALIZAÇÃO
+   ---------------------------------------------------------
+   Centralizar o bootstrap torna a ordem de inicialização
+   explícita e evita efeitos colaterais espalhados no arquivo.
+   ========================================================= */
+
+function initializeApp() {
+  assertRequiredElements();
+
+  setCopyButtonLabel(COPY_LABELS.default);
+
+  /*
+    O HTML já contém disabled como estado inicial seguro.
+
+    Reforçamos o estado aqui porque o JavaScript é a camada
+    que passa a controlar o botão depois da inicialização.
+  */
+
+  elements.copyButton.disabled = true;
+
+  bindEvents();
+  observePasswordDisplay();
+
+  updateLength();
+  createPassword();
+
+  /*
+    A fonte web pode terminar de carregar depois da primeira
+    medição. Quando isso acontece, as métricas do texto mudam.
+
+    Recalculamos uma vez com as métricas tipográficas finais.
+  */
+
+  if (document.fonts?.ready) {
+    document.fonts.ready.then(() => {
+      fitPasswordToDisplay();
+    });
+  }
+}
+
+initializeApp();

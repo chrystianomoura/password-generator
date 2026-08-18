@@ -6,34 +6,51 @@ import { getActiveCharacterSets } from "./password-character-sets.js";
    PASSWORD GENERATOR — MOTOR DE GERAÇÃO
    ---------------------------------------------------------
    Responsabilidade única:
-   gerar senhas criptograficamente seguras a partir
-   das configurações recebidas.
+   gerar senhas criptograficamente seguras a partir das
+   configurações recebidas.
 
    Estratégia:
-   - cada posição é escolhida uniformemente do pool;
-   - usamos CSPRNG;
-   - eliminamos modulo bias;
-   - rejeitamos senhas que não contenham todas as
-     categorias selecionadas.
+   1. constrói o pool das categorias selecionadas;
+   2. escolhe cada posição com CSPRNG;
+   3. elimina modulo bias na seleção dos índices;
+   4. rejeita candidatos que não contenham pelo menos um
+      caractere de cada categoria ativa.
 
-   Como todas as strings do pool possuem inicialmente
-   a mesma probabilidade e a rejeição depende apenas
-   de sua validade, todas as senhas aceitas permanecem
-   equiprováveis dentro do conjunto válido.
+   Como cada string do pool possui inicialmente a mesma
+   probabilidade e a rejeição depende apenas de sua validade,
+   todas as senhas aceitas permanecem equiprováveis dentro
+   do conjunto de resultados válidos.
 
    Este módulo:
    - não acessa o DOM;
    - não armazena senhas;
    - não realiza requisições;
-   - não utiliza Math.random().
+   - não utiliza Math.random();
+   - não calcula entropia;
+   - não conhece a interface.
    ========================================================= */
 
 /* =========================================================
    01. LIMITES
+   ---------------------------------------------------------
+   Os limites pertencem ao domínio do gerador.
+
+   Eles também são exportados ao final do módulo para que
+   outras partes da aplicação possam consultar a mesma fonte
+   de verdade sem duplicar esses valores.
    ========================================================= */
 
 const MIN_LENGTH = 8;
 const MAX_LENGTH = 64;
+
+/*
+  Uint32 possui 2^32 resultados possíveis:
+
+      0 até 4.294.967.295
+
+  UINT32_RANGE representa a quantidade total de valores,
+  portanto seu valor é 2^32.
+*/
 
 const UINT32_RANGE = 0x100000000;
 
@@ -56,6 +73,17 @@ function validateOptions(options) {
     );
   }
 
+  /*
+    Todas as opções abaixo fazem parte do contrato público
+    do gerador.
+
+    Exigir booleanos reais evita coerções implícitas como:
+
+      "false" -> true
+      1       -> true
+      0       -> false
+  */
+
   const booleanOptions = [
     "uppercase",
     "lowercase",
@@ -64,37 +92,39 @@ function validateOptions(options) {
     "excludeAmbiguous",
   ];
 
-  for (const option of booleanOptions) {
-    if (typeof options[option] !== "boolean") {
-      throw new TypeError(`${option} must be a boolean.`);
+  for (const optionName of booleanOptions) {
+    if (typeof options[optionName] !== "boolean") {
+      throw new TypeError(`${optionName} must be a boolean.`);
     }
   }
 }
 
 /* =========================================================
    03. ALEATORIEDADE CRIPTOGRÁFICA
+   ---------------------------------------------------------
+   Retorna um inteiro uniforme no intervalo:
+
+       0 <= resultado < maximum
+
+   A função utiliza crypto.getRandomValues(), fornecido pelo
+   ambiente, em vez de Math.random().
+
+   Math.random() não é apropriado para geração de senhas
+   porque não foi projetado como fonte criptograficamente
+   segura de aleatoriedade.
    ========================================================= */
-
-/*
-  Retorna um inteiro uniforme no intervalo:
-
-      0 <= resultado < maximum
-
-  Um simples:
-
-      randomValue % maximum
-
-  pode criar modulo bias quando maximum não divide
-  exatamente o espaço de valores de Uint32.
-
-  Por isso descartamos a região excedente antes
-  da operação de módulo.
-*/
 
 function getSecureRandomInteger(maximum) {
   if (!Number.isSafeInteger(maximum) || maximum <= 0) {
     throw new RangeError("Maximum must be a positive safe integer.");
   }
+
+  /*
+    A fonte utilizada abaixo produz valores Uint32.
+
+    Portanto, esta implementação suporta no máximo todo o
+    espaço representável por um Uint32.
+  */
 
   if (maximum > UINT32_RANGE) {
     throw new RangeError("Maximum exceeds the supported random range.");
@@ -108,6 +138,24 @@ function getSecureRandomInteger(maximum) {
   }
 
   const randomBuffer = new Uint32Array(1);
+
+  /*
+    MODULO BIAS
+    ---------------------------------------------------------
+    Usar diretamente:
+
+        randomValue % maximum
+
+    só produz uma distribuição perfeitamente uniforme quando
+    maximum divide exatamente 2^32.
+
+    Caso contrário, alguns restos aparecem uma vez a mais que
+    outros dentro do espaço possível de Uint32.
+
+    Para evitar isso, encontramos o maior múltiplo de maximum
+    que ainda cabe no intervalo Uint32 e descartamos qualquer
+    valor pertencente à região excedente.
+  */
 
   const rejectionLimit = UINT32_RANGE - (UINT32_RANGE % maximum);
 
@@ -123,7 +171,11 @@ function getSecureRandomInteger(maximum) {
 }
 
 /* =========================================================
-   04. SELEÇÃO SEGURA DE CARACTER
+   04. SELEÇÃO SEGURA DE CARACTERE
+   ---------------------------------------------------------
+   Escolhe uniformemente um caractere dentro do conjunto
+   recebido utilizando o índice criptograficamente aleatório
+   produzido pela função anterior.
    ========================================================= */
 
 function getSecureRandomCharacter(characterSet) {
@@ -137,16 +189,15 @@ function getSecureRandomCharacter(characterSet) {
 }
 
 /* =========================================================
-   05. CONSTRUÇÃO DE UMA TENTATIVA
+   05. CONSTRUÇÃO DE UM CANDIDATO
+   ---------------------------------------------------------
+   Todas as posições são escolhidas independentemente do
+   mesmo pool completo.
+
+   Antes da filtragem pelas categorias obrigatórias, cada
+   string possível com esse comprimento possui exatamente
+   a mesma probabilidade de ser produzida.
    ========================================================= */
-
-/*
-  Todas as posições são escolhidas do mesmo pool completo.
-
-  Portanto, antes da filtragem por categorias obrigatórias,
-  cada string possível de determinado comprimento possui
-  exatamente a mesma probabilidade.
-*/
 
 function generateCandidate(length, completePool) {
   const characters = [];
@@ -159,13 +210,23 @@ function generateCandidate(length, completePool) {
 }
 
 /* =========================================================
-   06. VALIDAÇÃO DA TENTATIVA
-   ========================================================= */
+   06. VALIDAÇÃO DO CANDIDATO
+   ---------------------------------------------------------
+   Um candidato só é válido quando possui pelo menos um
+   caractere pertencente a cada categoria ativa.
 
-/*
-  Uma senha só é aceita se possuir pelo menos um
-  caractere pertencente a cada categoria ativa.
-*/
+   Exemplo:
+
+   Se uppercase, lowercase e numbers estiverem ativos,
+   a senha precisa conter pelo menos:
+
+   - uma letra maiúscula;
+   - uma letra minúscula;
+   - um número.
+
+   O restante das posições continua livre para qualquer
+   caractere pertencente ao pool completo.
+   ========================================================= */
 
 function containsAllActiveSets(password, activeSets) {
   return activeSets.every(({ characters }) =>
@@ -175,6 +236,12 @@ function containsAllActiveSets(password, activeSets) {
 
 /* =========================================================
    07. GERAÇÃO DA SENHA
+   ---------------------------------------------------------
+   Esta é a função pública principal do módulo.
+
+   Ela valida a configuração, determina os conjuntos ativos,
+   constrói o pool completo e utiliza rejection sampling até
+   obter um candidato válido.
    ========================================================= */
 
 export function generatePassword(options) {
@@ -186,6 +253,13 @@ export function generatePassword(options) {
     throw new Error("At least one character category must be enabled.");
   }
 
+  /*
+    Cada categoria ativa precisa aparecer pelo menos uma vez.
+
+    Portanto, o comprimento nunca pode ser menor que a
+    quantidade de categorias obrigatórias.
+  */
+
   if (options.length < activeSets.length) {
     throw new Error(
       "Password length is too short for the selected categories.",
@@ -195,13 +269,35 @@ export function generatePassword(options) {
   const completePool = activeSets.map(({ characters }) => characters).join("");
 
   /*
-    Rejection sampling sobre strings completas.
+    Esta verificação é defensiva.
 
-    Toda tentativa é uniforme no espaço completePool^length.
+    getActiveCharacterSets() já garante que conjuntos ativos
+    não sejam vazios, então completePool também não deveria
+    ficar vazio neste ponto.
+  */
 
-    Rejeitar apenas as strings que não satisfazem as
-    categorias mantém distribuição uniforme entre todas
-    as senhas válidas restantes.
+  if (completePool.length === 0) {
+    throw new Error("Password character pool cannot be empty.");
+  }
+
+  /*
+    REJECTION SAMPLING SOBRE STRINGS COMPLETAS
+    ---------------------------------------------------------
+    Cada tentativa é uniforme dentro de:
+
+        completePool ^ length
+
+    Depois descartamos somente candidatos que não satisfaçam
+    todas as categorias obrigatórias.
+
+    Como todas as strings possuíam a mesma probabilidade
+    antes da rejeição, condicionar o resultado ao subconjunto
+    válido mantém todas as senhas válidas equiprováveis.
+
+    Isso é diferente de gerar primeiro um caractere de cada
+    categoria e preencher o restante depois, estratégia que
+    exige cuidados adicionais para evitar alterar a
+    distribuição final.
   */
 
   while (true) {
@@ -215,6 +311,10 @@ export function generatePassword(options) {
 
 /* =========================================================
    08. METADADOS PÚBLICOS
+   ---------------------------------------------------------
+   Exportamos os limites como objeto imutável para permitir
+   que outras partes da aplicação consultem as regras do
+   gerador sem redefinir os mesmos números.
    ========================================================= */
 
 export const PASSWORD_LIMITS = Object.freeze({

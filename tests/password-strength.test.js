@@ -7,80 +7,118 @@ import { evaluatePasswordStrength } from "../js/password-strength.js";
 
 /* =========================================================
    PASSWORD GENERATOR — TESTES DE CLASSIFICAÇÃO
+   ---------------------------------------------------------
+   Este arquivo verifica:
+
+   - fronteiras exatas entre os níveis;
+   - valores imediatamente abaixo dos thresholds;
+   - validação de entradas inválidas;
+   - crescimento consistente das barras;
+   - formato do objeto retornado.
+
+   Como evaluatePasswordStrength() é uma função pura e
+   determinística, usamos casos tabelados sempre que isso
+   deixa o comportamento mais fácil de enxergar.
    ========================================================= */
 
 /* =========================================================
-   01. LIMITES DOS NÍVEIS
+   01. CASOS DE CLASSIFICAÇÃO
    ========================================================= */
 
-test("classifica valores abaixo de 40 bits como Weak", () => {
-  assert.deepEqual(evaluatePasswordStrength(0), {
-    label: "Weak",
-    bars: 1,
-  });
+const CLASSIFICATION_CASES = Object.freeze([
+  Object.freeze({
+    entropy: 0,
+    expected: {
+      label: "Weak",
+      bars: 1,
+    },
+  }),
 
-  assert.deepEqual(evaluatePasswordStrength(39.999), {
-    label: "Weak",
-    bars: 1,
-  });
-});
+  Object.freeze({
+    entropy: 39.999,
+    expected: {
+      label: "Weak",
+      bars: 1,
+    },
+  }),
 
-test("classifica 40 bits como Fair", () => {
-  assert.deepEqual(evaluatePasswordStrength(40), {
-    label: "Fair",
-    bars: 2,
-  });
-});
+  Object.freeze({
+    entropy: 40,
+    expected: {
+      label: "Fair",
+      bars: 2,
+    },
+  }),
 
-test("classifica valores entre 40 e 60 bits como Fair", () => {
-  assert.deepEqual(evaluatePasswordStrength(59.999), {
-    label: "Fair",
-    bars: 2,
-  });
-});
+  Object.freeze({
+    entropy: 59.999,
+    expected: {
+      label: "Fair",
+      bars: 2,
+    },
+  }),
 
-test("classifica 60 bits como Strong", () => {
-  assert.deepEqual(evaluatePasswordStrength(60), {
-    label: "Strong",
-    bars: 3,
-  });
-});
+  Object.freeze({
+    entropy: 60,
+    expected: {
+      label: "Strong",
+      bars: 3,
+    },
+  }),
 
-test("classifica valores entre 60 e 80 bits como Strong", () => {
-  assert.deepEqual(evaluatePasswordStrength(79.999), {
-    label: "Strong",
-    bars: 3,
-  });
-});
+  Object.freeze({
+    entropy: 79.999,
+    expected: {
+      label: "Strong",
+      bars: 3,
+    },
+  }),
 
-test("classifica 80 bits como Very Strong", () => {
-  assert.deepEqual(evaluatePasswordStrength(80), {
-    label: "Very Strong",
-    bars: 4,
-  });
-});
+  Object.freeze({
+    entropy: 80,
+    expected: {
+      label: "Very Strong",
+      bars: 4,
+    },
+  }),
 
-test("classifica valores entre 80 e 120 bits como Very Strong", () => {
-  assert.deepEqual(evaluatePasswordStrength(119.999), {
-    label: "Very Strong",
-    bars: 4,
-  });
-});
+  Object.freeze({
+    entropy: 119.999,
+    expected: {
+      label: "Very Strong",
+      bars: 4,
+    },
+  }),
 
-test("classifica 120 bits ou mais como Exceptional", () => {
-  assert.deepEqual(evaluatePasswordStrength(120), {
-    label: "Exceptional",
-    bars: 5,
-  });
+  Object.freeze({
+    entropy: 120,
+    expected: {
+      label: "Exceptional",
+      bars: 5,
+    },
+  }),
 
-  assert.deepEqual(evaluatePasswordStrength(415), {
-    label: "Exceptional",
-    bars: 5,
-  });
-});
+  Object.freeze({
+    entropy: 415,
+    expected: {
+      label: "Exceptional",
+      bars: 5,
+    },
+  }),
+]);
 
 /* =========================================================
-   02. VALIDAÇÃO DE ENTRADA
+   02. LIMITES DOS NÍVEIS
+   ========================================================= */
+
+for (const { entropy, expected } of CLASSIFICATION_CASES) {
+  test(`classifica ${entropy} bits como ${expected.label}`, () => {
+    assert.deepEqual(evaluatePasswordStrength(entropy), expected);
+  });
+}
+
+/* =========================================================
+   03. VALIDAÇÃO DE ENTRADA
    ========================================================= */
 
 test("rejeita entropia negativa", () => {
@@ -101,22 +139,24 @@ test("rejeita Infinity", () => {
   }, TypeError);
 });
 
-test("rejeita valores que não são números", () => {
+test("rejeita -Infinity", () => {
   assert.throws(() => {
-    evaluatePasswordStrength("120");
-  }, TypeError);
-
-  assert.throws(() => {
-    evaluatePasswordStrength(null);
-  }, TypeError);
-
-  assert.throws(() => {
-    evaluatePasswordStrength();
+    evaluatePasswordStrength(-Infinity);
   }, TypeError);
 });
 
+test("rejeita valores que não são números", () => {
+  const invalidValues = ["120", null, undefined, true, {}, []];
+
+  for (const value of invalidValues) {
+    assert.throws(() => {
+      evaluatePasswordStrength(value);
+    }, TypeError);
+  }
+});
+
 /* =========================================================
-   03. CONSISTÊNCIA DA CLASSIFICAÇÃO
+   04. CONSISTÊNCIA DA CLASSIFICAÇÃO
    ========================================================= */
 
 test("a quantidade de barras cresce junto com o nível", () => {

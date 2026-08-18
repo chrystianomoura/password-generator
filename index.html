@@ -1,19 +1,55 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- ====================================================
+         DOCUMENTO
+         ----------------------------------------------------
+         UTF-8 garante a interpretação correta dos caracteres
+         usados pela interface.
+
+         viewport faz a largura lógica da página acompanhar
+         a largura real do dispositivo, permitindo que as
+         media queries do CSS funcionem corretamente.
+         ==================================================== -->
+
     <meta charset="UTF-8" />
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- ====================================================
+         METADADOS
+         ----------------------------------------------------
+         A descrição resume a função principal da aplicação
+         para mecanismos de busca e previews que utilizem
+         esse metadado.
+
+         theme-color permite que navegadores compatíveis
+         integrem a interface do navegador à identidade
+         visual escura usada ao redor da aplicação.
+         ==================================================== -->
+
     <meta
       name="description"
-      content="A secure password generator built with JavaScript."
+      content="Generate secure passwords locally with customizable length, character sets, entropy analysis, and strength evaluation."
     />
+
+    <meta name="theme-color" content="#111111" />
 
     <title>Password Generator</title>
 
-    <!-- Fonts -->
+    <!-- ====================================================
+         FONTES
+         ----------------------------------------------------
+         preconnect antecipa a conexão com os servidores do
+         Google Fonts e reduz parte da latência necessária
+         antes do download das fontes.
+
+         crossorigin é necessário para a conexão antecipada
+         com fonts.gstatic.com, que utiliza outra origem.
+         ==================================================== -->
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
+
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
     <link
@@ -21,53 +57,101 @@
       rel="stylesheet"
     />
 
-    <!-- Styles -->
+    <!-- ====================================================
+         ESTILOS
+         ==================================================== -->
+
     <link rel="stylesheet" href="./css/style.css" />
   </head>
 
   <body>
+    <!-- ====================================================
+         APLICAÇÃO
+         ----------------------------------------------------
+         Existe apenas um <main>, pois toda a página pertence
+         à experiência principal do gerador de senhas.
+         ==================================================== -->
+
     <main class="app-shell">
       <!-- ==================================================
-           INTRO
+           INTRODUÇÃO
+           --------------------------------------------------
+           Este conteúdo funciona como o cabeçalho conceitual
+           da aplicação.
+
+           <header> é semanticamente mais adequado que <aside>
+           porque o conteúdo não é complementar: ele apresenta
+           diretamente o produto e sua proposta.
            ================================================== -->
 
-      <aside class="intro-panel">
-        <section class="intro-panel__title">
+      <header class="intro-panel">
+        <div class="intro-panel__title">
           <h1>
             <span>Password</span>
             <span>Generator.</span>
           </h1>
-        </section>
+        </div>
 
-        <section class="intro-panel__message">
+        <div class="intro-panel__message">
           <p>
             <span>Generate</span>
             <span>Something</span>
             <span>Unguessable.</span>
           </p>
-        </section>
+        </div>
 
-        <section class="intro-panel__privacy">
+        <div class="intro-panel__privacy">
           <p>Generated locally.</p>
           <p>Stored nowhere.</p>
-        </section>
-      </aside>
+        </div>
+      </header>
 
       <!-- ==================================================
            WORKSPACE
+           --------------------------------------------------
+           Utilizamos <div> aqui em vez de <section> porque
+           este elemento existe principalmente para organizar
+           o layout.
+
+           As áreas semanticamente independentes dentro dele
+           continuam sendo representadas por <section>.
            ================================================== -->
 
-      <section class="workspace">
+      <div class="workspace">
         <!-- ================================================
-             PASSWORD
+             SENHA
              ================================================ -->
 
-        <section class="password-panel">
-          <p class="section-label section-label--password">Your password:</p>
+        <section class="password-panel" aria-labelledby="password-heading">
+          <h2
+            id="password-heading"
+            class="section-label section-label--password"
+          >
+            Your password:
+          </h2>
+
+          <!--
+            aria-live informa tecnologias assistivas quando
+            uma nova senha substitui o conteúdo anterior.
+
+            aria-atomic faz a região ser anunciada como uma
+            unidade, em vez de anunciar apenas diferenças
+            parciais entre duas senhas.
+          -->
 
           <div class="password-display" aria-live="polite" aria-atomic="true">
             <span id="generated-password"></span>
           </div>
+
+          <!--
+            Região separada para mensagens operacionais,
+            como falhas de geração ou de clipboard.
+
+            role="status" já representa uma live region
+            educada; aria-live e aria-atomic permanecem
+            explícitos para tornar a intenção do componente
+            fácil de compreender durante o estudo do código.
+          -->
 
           <p
             id="app-status"
@@ -82,32 +166,55 @@
               Generate new password
             </button>
 
-            <button id="copy-password" type="button">Copy to clipboard</button>
+            <!--
+              O botão começa desabilitado diretamente no HTML.
+
+              Assim, mesmo antes de o JavaScript inicializar,
+              a interface nunca oferece uma ação de cópia sem
+              que exista uma senha disponível.
+            -->
+
+            <button id="copy-password" type="button" disabled>
+              Copy to clipboard
+            </button>
           </div>
         </section>
 
         <!-- ================================================
-             CONFIGURATION + ANALYSIS
+             CONFIGURAÇÃO + ANÁLISE
              ================================================ -->
 
         <div class="content-grid">
           <!-- ==============================================
-               CONFIGURATION
+               CONFIGURAÇÃO
                ============================================== -->
 
-          <section class="configuration-panel">
-            <p class="section-label">Configuration</p>
+          <section
+            class="configuration-panel"
+            aria-labelledby="configuration-heading"
+          >
+            <h2 id="configuration-heading" class="section-label">
+              Configuration
+            </h2>
 
             <div class="configuration-panel__content">
-              <!-- LENGTH -->
+              <!-- ==========================================
+                   COMPRIMENTO
+                   ------------------------------------------
+                   O input range nativo permanece responsável
+                   pela interação e acessibilidade.
+
+                   O trilho, preenchimento e thumb visuais são
+                   estilizados separadamente pelo CSS.
+                   ========================================== -->
 
               <div class="length-control">
                 <div class="length-control__header">
-                  <span>Length:</span>
+                  <label for="password-length"> Length: </label>
 
                   <strong id="length-value"> 24 </strong>
 
-                  <span>8–64</span>
+                  <span id="password-length-range"> 8–64 </span>
                 </div>
 
                 <div class="length-control__track">
@@ -119,8 +226,17 @@
                     max="64"
                     value="24"
                     step="1"
-                    aria-label="Password length"
+                    aria-describedby="password-length-range"
                   />
+
+                  <!--
+                    Estes elementos existem apenas para a
+                    representação visual personalizada do
+                    range.
+
+                    aria-hidden impede que sejam tratados como
+                    conteúdo adicional por leitores de tela.
+                  -->
 
                   <span class="length-control__fill" aria-hidden="true"></span>
 
@@ -128,17 +244,26 @@
                 </div>
               </div>
 
-              <!-- UPPERCASE -->
+              <!-- ==========================================
+                   MAIÚSCULAS
+                   ------------------------------------------
+                   aria-pressed transforma o botão em um
+                   controle toggle semanticamente reconhecível.
+
+                   O texto visual On/Off pode mudar sem que o
+                   nome acessível do controle perca o contexto.
+                   ========================================== -->
 
               <div class="config-row">
                 <span>
                   Uppercase
-                  <span class="character-example">(A–Z)</span>
+                  <span class="character-example"> (A–Z) </span>
                 </span>
 
                 <button
                   type="button"
                   data-option="uppercase"
+                  aria-label="Uppercase letters"
                   aria-pressed="true"
                 >
                   <span>On</span>
@@ -150,12 +275,13 @@
               <div class="config-row">
                 <span>
                   Lowercase
-                  <span class="character-example">(a–z)</span>
+                  <span class="character-example"> (a–z) </span>
                 </span>
 
                 <button
                   type="button"
                   data-option="lowercase"
+                  aria-label="Lowercase letters"
                   aria-pressed="true"
                 >
                   <span>On</span>
@@ -167,10 +293,15 @@
               <div class="config-row">
                 <span>
                   Numbers
-                  <span class="character-example">(0–9)</span>
+                  <span class="character-example"> (0–9) </span>
                 </span>
 
-                <button type="button" data-option="numbers" aria-pressed="true">
+                <button
+                  type="button"
+                  data-option="numbers"
+                  aria-label="Numbers"
+                  aria-pressed="true"
+                >
                   <span>On</span>
                 </button>
               </div>
@@ -180,10 +311,15 @@
               <div class="config-row">
                 <span>
                   Symbols
-                  <span class="character-example">(!@#$%^&*)</span>
+                  <span class="character-example"> (!@#$%^&amp;*) </span>
                 </span>
 
-                <button type="button" data-option="symbols" aria-pressed="true">
+                <button
+                  type="button"
+                  data-option="symbols"
+                  aria-label="Symbols"
+                  aria-pressed="true"
+                >
                   <span>On</span>
                 </button>
               </div>
@@ -193,12 +329,13 @@
               <div class="config-row">
                 <span>
                   Exclude ambiguous
-                  <span class="character-example">(I l 1 O 0)</span>
+                  <span class="character-example"> (I l 1 O 0) </span>
                 </span>
 
                 <button
                   type="button"
                   data-option="excludeAmbiguous"
+                  aria-label="Exclude ambiguous characters"
                   aria-pressed="false"
                 >
                   <span>Off</span>
@@ -208,14 +345,16 @@
           </section>
 
           <!-- ==============================================
-               ANALYSIS
+               ANÁLISE
                ============================================== -->
 
-          <section class="analysis-panel">
-            <p class="section-label">Analysis</p>
+          <section class="analysis-panel" aria-labelledby="analysis-heading">
+            <h2 id="analysis-heading" class="section-label">Analysis</h2>
 
             <div class="analysis-panel__content">
-              <!-- ENTROPY -->
+              <!-- ==========================================
+                   ENTROPIA
+                   ========================================== -->
 
               <div class="analysis-card analysis-card--entropy">
                 <span>Entropy</span>
@@ -225,9 +364,13 @@
                 <span>Bits of entropy</span>
               </div>
 
-              <!-- LOWER ANALYSIS -->
+              <!-- ==========================================
+                   ANÁLISE INFERIOR
+                   ========================================== -->
 
               <div class="analysis-row">
+                <!-- LENGTH -->
+
                 <div class="analysis-card">
                   <span>Length</span>
 
@@ -236,15 +379,25 @@
                   <span>Characters</span>
                 </div>
 
+                <!-- SECURITY LEVEL -->
+
                 <div class="analysis-card">
                   <span>Security level</span>
+
+                  <!--
+                    O texto é a representação acessível real
+                    da classificação.
+
+                    As barras abaixo são apenas uma tradução
+                    visual desse mesmo estado.
+                  -->
 
                   <strong id="security-level" aria-live="polite"> — </strong>
 
                   <div
                     id="strength-bars"
                     class="strength-bars"
-                    aria-label="Password strength"
+                    aria-hidden="true"
                   >
                     <span></span>
                     <span></span>
@@ -259,7 +412,7 @@
         </div>
 
         <!-- ================================================
-             SOURCE
+             CÓDIGO-FONTE
              ================================================ -->
 
         <footer class="source-panel">
@@ -267,16 +420,23 @@
             href="https://github.com/chrystianomoura/password-generator"
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="View source on GitHub, opens in a new tab"
           >
             View source on GitHub
           </a>
         </footer>
-      </section>
+      </div>
     </main>
 
-    <!-- ==================================================
-         SCRIPTS
-         ================================================== -->
+    <!-- ====================================================
+         JAVASCRIPT
+         ----------------------------------------------------
+         type="module" permite utilizar import/export.
+
+         Scripts ES Modules também são executados em strict
+         mode automaticamente e são carregados de forma
+         deferida pelo navegador.
+         ==================================================== -->
 
     <script type="module" src="./js/main.js"></script>
   </body>
