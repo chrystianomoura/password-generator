@@ -3,6 +3,7 @@
 import { generatePassword } from "./password-generator.js";
 import { calculateEntropy } from "./password-entropy.js";
 import { evaluatePasswordStrength } from "./password-strength.js";
+import { copyTextToClipboard } from "./clipboard.js";
 
 /* =========================================================
    PASSWORD GENERATOR — CONTROLADOR PRINCIPAL
@@ -10,8 +11,8 @@ import { evaluatePasswordStrength } from "./password-strength.js";
    Responsabilidade:
    conectar a interface aos módulos da aplicação.
 
-   A geração, a análise de entropia e a classificação
-   de segurança permanecem isoladas em seus módulos.
+   A geração, a análise, a classificação de segurança
+   e a lógica de clipboard permanecem isoladas.
    ========================================================= */
 
 /* =========================================================
@@ -348,37 +349,7 @@ function showCopyFeedback(message) {
 }
 
 /* =========================================================
-   13. FALLBACK DE CÓPIA
-   ========================================================= */
-
-function copyWithFallback(text) {
-  const temporaryTextarea = document.createElement("textarea");
-
-  temporaryTextarea.value = text;
-
-  temporaryTextarea.setAttribute("readonly", "");
-
-  temporaryTextarea.style.position = "fixed";
-
-  temporaryTextarea.style.opacity = "0";
-
-  temporaryTextarea.style.pointerEvents = "none";
-
-  document.body.appendChild(temporaryTextarea);
-
-  temporaryTextarea.select();
-
-  const copied = document.execCommand("copy");
-
-  temporaryTextarea.remove();
-
-  if (!copied) {
-    throw new Error("Fallback clipboard copy failed.");
-  }
-}
-
-/* =========================================================
-   14. CÓPIA PARA A ÁREA DE TRANSFERÊNCIA
+   13. CÓPIA PARA A ÁREA DE TRANSFERÊNCIA
    ========================================================= */
 
 async function copyPassword() {
@@ -391,35 +362,21 @@ async function copyPassword() {
   }
 
   try {
-    if (
-      navigator.clipboard &&
-      typeof navigator.clipboard.writeText === "function"
-    ) {
-      await navigator.clipboard.writeText(password);
-    } else {
-      copyWithFallback(password);
-    }
+    await copyTextToClipboard(password);
 
     setAppStatus("");
     showCopyFeedback("Copied!");
   } catch (error) {
-    try {
-      copyWithFallback(password);
+    console.error("Clipboard copy failed:", error);
 
-      setAppStatus("");
-      showCopyFeedback("Copied!");
-    } catch (fallbackError) {
-      console.error("Clipboard copy failed:", error, fallbackError);
+    setAppStatus("Unable to copy automatically. Please try again.");
 
-      setAppStatus("Unable to copy automatically. Please try again.");
-
-      showCopyFeedback("Copy failed");
-    }
+    showCopyFeedback("Copy failed");
   }
 }
 
 /* =========================================================
-   15. OBSERVAÇÃO DO LAYOUT
+   14. OBSERVAÇÃO DO LAYOUT
    ========================================================= */
 
 const passwordResizeObserver = new ResizeObserver(() => {
@@ -429,7 +386,7 @@ const passwordResizeObserver = new ResizeObserver(() => {
 passwordResizeObserver.observe(elements.passwordDisplay);
 
 /* =========================================================
-   16. EVENTOS
+   15. EVENTOS
    ========================================================= */
 
 elements.lengthInput.addEventListener("input", updateLength);
@@ -445,15 +402,10 @@ elements.generateButton.addEventListener("click", createPassword);
 elements.copyButton.addEventListener("click", copyPassword);
 
 /* =========================================================
-   17. INICIALIZAÇÃO
+   16. INICIALIZAÇÃO
    ========================================================= */
 
 elements.copyButton.setAttribute("aria-label", "Copy password to clipboard");
-
-/*
-  Até existir uma senha válida, o botão Copy
-  não deve oferecer uma ação impossível.
-*/
 
 elements.copyButton.disabled = true;
 

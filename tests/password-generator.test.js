@@ -248,3 +248,32 @@ test("gera senhas diferentes em chamadas sucessivas", () => {
 
   assert.equal(passwords.size, 1000);
 });
+
+/* =========================================================
+   09. INDISPONIBILIDADE DO CSPRNG
+   ========================================================= */
+
+test("falha com segurança quando crypto.getRandomValues não está disponível", () => {
+  const originalCrypto = globalThis.crypto;
+
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: undefined,
+  });
+
+  try {
+    assert.throws(
+      () => {
+        generatePassword(DEFAULT_OPTIONS);
+      },
+      {
+        message: "Cryptographically secure randomness is unavailable.",
+      },
+    );
+  } finally {
+    Object.defineProperty(globalThis, "crypto", {
+      configurable: true,
+      value: originalCrypto,
+    });
+  }
+});
