@@ -6,6 +6,11 @@
    01. REDEFINIÇÕES / BASE
    ========================================================= */
 
+/*
+  border-box faz width/height incluírem padding e border.
+  Isso torna o dimensionamento das caixas previsível e evita
+  que padding aumente inesperadamente o tamanho final.
+*/
 *,
 *::before,
 *::after {
@@ -64,17 +69,9 @@ strong {
    ========================================================= */
 
 :root {
-  /* ==========================
-     CORES
-     ========================== */
-
   --color-background: #f6f4ee;
   --color-text: #111111;
   --color-line: #111111;
-
-  /* ==========================
-     TIPOGRAFIA
-     ========================== */
 
   --font-interface: "IBM Plex Mono", "Courier New", monospace;
   --font-display: "Anton", Impact, sans-serif;
@@ -84,22 +81,14 @@ strong {
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
-  /* ==========================
-     DIMENSÕES DO LAYOUT
-     ========================== */
-
   --line-width: 1px;
-  --page-gap: 16px;
+  --page-gap: 9px;
   --footer-height: 64px;
 
   --password-line-width: 2px;
 
   --config-control-width: 132px;
   --config-button-height: 34px;
-
-  /* ==========================
-     INTERAÇÕES
-     ========================== */
 
   --transition-fast: 140ms ease;
 }
@@ -116,6 +105,11 @@ strong {
 
   display: grid;
 
+  /*
+    minmax(0, ...) permite que as colunas realmente encolham.
+    Sem o zero, conteúdo intrínseco muito largo pode impedir
+    a track de reduzir e provocar overflow horizontal.
+  */
   grid-template-columns:
     minmax(280px, 0.68fr)
     minmax(0, 2fr);
@@ -157,17 +151,17 @@ strong {
    ========================== */
 
 .intro-panel__title {
-  padding: 2.6rem 1.35rem 0;
+  padding: 2.6rem clamp(1.2rem, 1.5vw, 1.55rem) 0;
 }
 
 .intro-panel__title h1 {
   margin: 0;
 
   font-family: var(--font-display);
-  font-size: clamp(3.8rem, 5.5vw, 5rem);
+  font-size: clamp(3.5rem, 5vw, 5.7rem);
   font-weight: 400;
   line-height: 0.96;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
 
   text-transform: uppercase;
 }
@@ -266,10 +260,6 @@ strong {
   padding: 0 2rem 1.5rem;
 }
 
-/* ==========================
-   RÓTULOS DE SEÇÃO
-   ========================== */
-
 .section-label {
   margin: 0;
   padding: 1rem 1.5rem;
@@ -278,10 +268,6 @@ strong {
 
   border-bottom: var(--line-width) solid var(--color-line);
 }
-
-/* ==========================
-   RÓTULO "YOUR PASSWORD"
-   ========================== */
 
 .section-label--password {
   position: relative;
@@ -347,7 +333,7 @@ strong {
   background: var(--color-line);
 }
 
-.password-display span {
+.password-display > span {
   display: block;
 
   width: max-content;
@@ -359,6 +345,48 @@ strong {
   letter-spacing: -0.05em;
 
   text-align: center;
+  white-space: nowrap;
+}
+
+/* ==========================
+   SENHA — DUAS LINHAS
+   ========================== */
+
+/*
+  Este estado é ativado pelo JavaScript apenas quando a
+  senha inteira não cabe em uma linha com um tamanho de
+  fonte aceitável.
+
+  A senha é dividida visualmente em duas metades iguais
+  sempre que o comprimento é par.
+
+  Exemplo:
+  44 caracteres -> 22 + 22
+  64 caracteres -> 32 + 32
+
+  Nenhum caractere é inserido, removido ou alterado na
+  senha real usada pelo clipboard.
+*/
+
+.password-display--wrapped {
+  padding-top: 1rem;
+}
+
+.password-display > span.password-display__text--wrapped {
+  width: 100%;
+
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  white-space: normal;
+}
+
+.password-display__line {
+  display: block;
+
+  width: max-content;
+  max-width: none;
+  margin-inline: auto;
+
   white-space: nowrap;
 }
 
@@ -430,24 +458,42 @@ strong {
   border-left: var(--line-width) solid var(--color-line);
 }
 
-.password-actions button:hover:not(:disabled) {
-  background: var(--color-text);
-  color: var(--color-background);
+/* ==========================
+   HOVER — APENAS MOUSE
+   ========================== */
+
+@media (hover: hover) and (pointer: fine) {
+  .password-actions button:hover:not(:disabled) {
+    background: var(--color-text);
+    color: var(--color-background);
+  }
 }
 
-.password-actions button:focus-visible {
-  background: var(--color-text);
-  color: var(--color-background);
+/* ==========================
+   FOCO POR TECLADO
+   ========================== */
 
+.password-actions button:focus-visible {
   outline: 2px solid var(--color-text);
   outline-offset: 3px;
 
   box-shadow: inset 0 0 0 2px var(--color-background);
 }
 
+/* ==========================
+   PRESSIONAMENTO
+   ========================== */
+
 .password-actions button:active:not(:disabled) {
+  background: var(--color-text);
+  color: var(--color-background);
+
   opacity: 0.78;
 }
+
+/* ==========================
+   DESABILITADO
+   ========================== */
 
 .password-actions button:disabled {
   opacity: 0.38;
@@ -562,6 +608,10 @@ strong {
   letter-spacing: 0.08em;
 }
 
+/* ==========================
+   TRILHO DO COMPRIMENTO
+   ========================== */
+
 .length-control__track {
   --length-progress: 28.5714%;
 
@@ -570,6 +620,11 @@ strong {
   height: 22px;
 }
 
+/*
+  O input range real permanece ativo, acessível e responsável
+  pela interação. Ele é transparente; trilho, preenchimento e
+  thumb abaixo são apenas a representação visual customizada.
+*/
 .length-control__input {
   position: absolute;
   top: 50%;
@@ -644,13 +699,15 @@ strong {
   pointer-events: none;
 }
 
-.length-control__input:hover ~ .length-control__fill {
-  height: 5px;
-}
+@media (hover: hover) and (pointer: fine) {
+  .length-control__input:hover ~ .length-control__fill {
+    height: 5px;
+  }
 
-.length-control__input:hover ~ .length-control__thumb {
-  width: 22px;
-  height: 22px;
+  .length-control__input:hover ~ .length-control__thumb {
+    width: 22px;
+    height: 22px;
+  }
 }
 
 .length-control__input:focus-visible ~ .length-control__thumb {
@@ -682,7 +739,6 @@ strong {
   align-items: stretch;
 
   border-right: var(--line-width) solid var(--color-line);
-
   border-left: var(--line-width) solid var(--color-line);
 }
 
@@ -701,10 +757,14 @@ strong {
 .config-row > span {
   min-width: 0;
 
-  display: flex;
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto;
+
   align-items: center;
 
-  gap: 0.35rem;
+  gap: 0.5rem;
 
   padding: 0.65rem 1rem;
 
@@ -717,7 +777,12 @@ strong {
 
 .config-row .character-example {
   text-transform: none;
+  white-space: nowrap;
 }
+
+/* ==========================
+   CÉLULA ON / OFF
+   ========================== */
 
 .config-row button {
   position: relative;
@@ -775,6 +840,11 @@ strong {
   pointer-events: none;
 }
 
+/*
+  O estado visual deriva do mesmo aria-pressed usado pela
+  acessibilidade. Assim não existe uma classe visual separada
+  que possa sair de sincronia com o estado semântico do botão.
+*/
 .config-row button[aria-pressed="true"]::before {
   background: var(--color-text);
 }
@@ -848,6 +918,10 @@ strong {
   font-weight: var(--font-weight-bold);
 }
 
+/* ==========================
+   ENTROPIA
+   ========================== */
+
 .analysis-card--entropy {
   justify-content: center;
   align-items: center;
@@ -880,6 +954,10 @@ strong {
 
   text-transform: uppercase;
 }
+
+/* ==========================
+   ANÁLISE INFERIOR
+   ========================== */
 
 .analysis-row {
   min-width: 0;
@@ -923,6 +1001,10 @@ strong {
 
   text-transform: uppercase;
 }
+
+/* ==========================
+   BARRAS DE SEGURANÇA
+   ========================== */
 
 .strength-bars {
   display: flex;
@@ -1001,31 +1083,43 @@ strong {
   transition: transform var(--transition-fast);
 }
 
-.source-panel a:hover::before,
+@media (hover: hover) and (pointer: fine) {
+  .source-panel a:hover::before {
+    transform: scaleX(1);
+  }
+
+  .source-panel a:hover::after {
+    transform: translate(2px, -2px);
+  }
+}
+
 .source-panel a:focus-visible::before {
   transform: scaleX(1);
 }
 
-.source-panel a:hover::after,
 .source-panel a:focus-visible::after {
   transform: translate(2px, -2px);
 }
 
 /* =========================================================
    11. RESPONSIVIDADE — NOTEBOOK / DESKTOP ESTREITO
+   ---------------------------------------------------------
+   Mantém a arquitetura desktop em duas colunas, mas reduz
+   proporções, espaçamentos e tipografia para preservar a
+   composição em larguras menores.
+   Breakpoint: até 1200px.
    ========================================================= */
 
 @media (max-width: 1200px) {
   :root {
-    --page-gap: 12px;
     --config-control-width: 118px;
     --config-button-height: 32px;
   }
 
   .app-shell {
     grid-template-columns:
-      minmax(250px, 0.75fr)
-      minmax(0, 1.75fr);
+      minmax(260px, 0.68fr)
+      minmax(0, 2fr);
   }
 
   /* ==========================
@@ -1034,10 +1128,6 @@ strong {
 
   .intro-panel__title {
     padding: 2rem 1.15rem 0;
-  }
-
-  .intro-panel__title h1 {
-    font-size: clamp(3.15rem, 5vw, 4rem);
   }
 
   .intro-panel__message {
@@ -1098,12 +1188,12 @@ strong {
   }
 
   .config-row > span {
-    gap: 0.28rem;
+    gap: 0.4rem;
 
-    padding: 0.55rem 0.75rem;
+    padding: 0.55rem 0.65rem;
 
-    font-size: 0.8rem;
-    letter-spacing: 0.055em;
+    font-size: 0.76rem;
+    letter-spacing: 0.045em;
   }
 
   .config-row button {
@@ -1173,14 +1263,309 @@ strong {
 }
 
 /* =========================================================
-   12. PRÓXIMAS FAIXAS
+   12. RESPONSIVIDADE — TABLET
+   ---------------------------------------------------------
+   A partir daqui a mudança é estrutural: o layout principal
+   passa para uma coluna, o conteúdo ganha scroll vertical e
+   Configuration / Analysis deixam de disputar espaço lateral.
+   Breakpoint: até 900px.
    ========================================================= */
 
-/*
-  Tablet e mobile serão tratados separadamente.
+@media (max-width: 900px) {
+  :root {
+    --footer-height: 58px;
+    --config-control-width: 130px;
+    --config-button-height: 34px;
+  }
 
-  Próximos breakpoints:
+  /* ==========================
+     PÁGINA
+     ========================== */
 
-  @media (max-width: 900px)
-  @media (max-width: 640px)
-*/
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .app-shell {
+    height: auto;
+    min-height: calc(100vh - (var(--page-gap) * 2));
+
+    grid-template-columns: 1fr;
+  }
+
+  /* ==========================
+     INTRO
+     ========================== */
+
+  .intro-panel {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(190px, auto);
+
+    grid-template-rows:
+      auto
+      var(--footer-height);
+
+    border-right: 0;
+    border-bottom: var(--line-width) solid var(--color-line);
+  }
+
+  .intro-panel__title {
+    padding: 1.6rem 1.4rem 1.45rem;
+  }
+
+  .intro-panel__title h1 {
+    font-size: clamp(3.3rem, 8.5vw, 4.5rem);
+  }
+
+  .intro-panel__message {
+    align-items: center;
+    justify-content: flex-end;
+
+    padding: 1.5rem 1.5rem;
+  }
+
+  .intro-panel__message p {
+    font-size: 0.82rem;
+    line-height: 1.55;
+
+    text-align: right;
+  }
+
+  .intro-panel__privacy {
+    grid-column: 1 / -1;
+
+    padding: 0 1.4rem;
+  }
+
+  .intro-panel__privacy p {
+    font-size: 0.72rem;
+  }
+
+  /* ==========================
+     WORKSPACE
+     ========================== */
+
+  .workspace {
+    grid-template-rows:
+      auto
+      auto
+      var(--footer-height);
+  }
+
+  /* ==========================
+     SENHA
+     ========================== */
+
+  .password-panel {
+    min-height: 300px;
+
+    grid-template-rows:
+      auto
+      minmax(110px, 1fr)
+      auto
+      auto;
+
+    padding: 0 1.4rem 1.35rem;
+  }
+
+  .section-label--password {
+    align-self: auto;
+
+    padding-top: 3rem;
+
+    font-size: 2rem;
+  }
+
+  .password-display {
+    min-height: 115px;
+  }
+
+  .password-actions button {
+    min-height: 54px;
+
+    padding: 0.7rem 0.8rem;
+
+    font-size: 0.82rem;
+  }
+
+  /* ==========================
+     CONFIGURATION + ANALYSIS
+     ========================== */
+
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* ==========================
+     CONFIGURATION
+     ========================== */
+
+  .configuration-panel {
+    border-right: 0;
+    border-bottom: var(--line-width) solid var(--color-line);
+  }
+
+  .configuration-panel__content {
+    margin: 1.35rem 1.4rem 1.5rem;
+  }
+
+  .length-control {
+    padding-bottom: 1.25rem;
+  }
+
+  .config-row {
+    min-height: 56px;
+  }
+
+  .config-row > span {
+    grid-template-columns:
+      minmax(0, 1fr)
+      auto;
+
+    gap: 0.6rem;
+
+    padding: 0.7rem 1rem;
+
+    font-size: 0.82rem;
+    letter-spacing: 0.055em;
+  }
+
+  .config-row button {
+    font-size: 0.75rem;
+  }
+
+  /* ==========================
+     ANALYSIS
+     ========================== */
+
+  .analysis-panel__content {
+    grid-template-rows:
+      minmax(230px, auto)
+      minmax(150px, auto);
+  }
+
+  .analysis-card--entropy {
+    padding: 2.2rem 1.5rem;
+  }
+
+  .analysis-card--entropy > span:first-child {
+    font-size: 1.35rem;
+  }
+
+  .analysis-card--entropy strong {
+    font-size: clamp(5.5rem, 15vw, 7.5rem);
+  }
+
+  .analysis-card--entropy span:last-child {
+    font-size: 0.9rem;
+  }
+
+  .analysis-row {
+    min-height: 150px;
+  }
+
+  .analysis-row .analysis-card {
+    align-items: center;
+
+    padding: 1.4rem;
+
+    text-align: center;
+  }
+
+  .analysis-row .analysis-card:first-child strong {
+    font-size: 2.8rem;
+  }
+
+  .analysis-row .analysis-card:last-child strong {
+    max-width: none;
+
+    font-size: 1.35rem;
+  }
+
+  .analysis-row .strength-bars {
+    justify-content: center;
+  }
+
+  .strength-bars {
+    gap: 0.35rem;
+  }
+
+  .strength-bars span {
+    width: 20px;
+    height: 10px;
+  }
+
+  /* ==========================
+     RODAPÉ
+     ========================== */
+
+  .source-panel {
+    min-height: var(--footer-height);
+
+    padding: 0.7rem 1rem;
+  }
+
+  .source-panel a {
+    font-size: 0.8rem;
+  }
+}
+
+/* =========================================================
+   13. RESPONSIVIDADE — MOBILE
+   ---------------------------------------------------------
+   Preserva a estrutura criada no tablet, mas adapta ações
+   para toque e largura reduzida. Os botões passam a ocupar
+   a largura inteira e recebem feedback visual mais lento.
+   Breakpoint: até 640px.
+   ========================================================= */
+
+@media (max-width: 640px) {
+  .password-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .password-actions button {
+    min-height: 56px;
+
+    padding: 0.8rem 1rem;
+
+    line-height: 1.25;
+    white-space: normal;
+
+    /*
+      No mobile a inversão preto/creme recebe um pouco
+      mais de tempo para não parecer brusca durante o tap.
+    */
+
+    transition:
+      background-color 420ms ease,
+      color 420ms ease,
+      opacity 240ms ease;
+  }
+
+  .password-actions button + button {
+    border-left: 0;
+    border-top: var(--line-width) solid var(--color-line);
+  }
+}
+
+/* =========================================================
+   14. ACESSIBILIDADE — MOVIMENTO REDUZIDO
+   ---------------------------------------------------------
+   Respeita a preferência do sistema por menos movimento.
+   A interface continua funcional, apenas sem transições e
+   animações decorativas perceptíveis.
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

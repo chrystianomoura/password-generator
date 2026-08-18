@@ -46,6 +46,7 @@ const elements = {
 
 let copyFeedbackTimeout = null;
 let generatedPasswordOptions = null;
+let generatedPassword = "";
 let generationFailed = false;
 
 /* =========================================================
@@ -179,7 +180,6 @@ function updateLength() {
   const value = Number(elements.lengthInput.value);
 
   const minimum = Number(elements.lengthInput.min);
-
   const maximum = Number(elements.lengthInput.max);
 
   const progress = ((value - minimum) / (maximum - minimum)) * 100;
@@ -232,20 +232,110 @@ function toggleConfigButton(button) {
 
 /* =========================================================
    10. AJUSTE RESPONSIVO DA SENHA
+   ---------------------------------------------------------
+   Mantém a senha em uma única linha sempre que houver
+   espaço suficiente.
+
+   Quando nem o menor tamanho aceitável consegue acomodar
+   a senha inteira, a exibição passa para duas linhas.
+
+   No modo de duas linhas, a senha é dividida exatamente
+   ao meio:
+
+   - comprimento par: metade em cima / metade embaixo;
+   - comprimento ímpar: a linha superior recebe 1 caractere
+     a mais.
+
+   A divisão é apenas visual. A senha original permanece
+   intacta no estado da aplicação e no clipboard.
    ========================================================= */
 
 const PASSWORD_FONT = Object.freeze({
-  minimum: 16,
-  maximum: 80,
+  singleLineMinimum: 16,
+  singleLineMaximum: 80,
+  wrappedMinimum: 12,
+  wrappedMaximum: 40,
   precision: 0.25,
 });
 
-function fitPasswordToDisplay() {
+function resetPasswordDisplayMode() {
   const output = elements.passwordOutput;
-
   const display = elements.passwordDisplay;
 
-  if (!output || !display || !output.textContent) {
+  output.classList.remove("password-display__text--wrapped");
+
+  display.classList.remove("password-display--wrapped");
+
+  output.style.fontSize = "";
+
+  output.replaceChildren(document.createTextNode(generatedPassword));
+}
+
+function renderWrappedPassword() {
+  const output = elements.passwordOutput;
+  const display = elements.passwordDisplay;
+
+  /*
+    Math.ceil faz com que, em comprimentos ímpares,
+    a primeira linha receba apenas um caractere a mais.
+
+    Exemplos:
+
+    44 -> 22 + 22
+    64 -> 32 + 32
+    63 -> 32 + 31
+  */
+
+  const midpoint = Math.ceil(generatedPassword.length / 2);
+
+  const firstHalf = generatedPassword.slice(0, midpoint);
+
+  const secondHalf = generatedPassword.slice(midpoint);
+
+  const firstLine = document.createElement("span");
+
+  const secondLine = document.createElement("span");
+
+  firstLine.className = "password-display__line";
+
+  secondLine.className = "password-display__line";
+
+  firstLine.textContent = firstHalf;
+  secondLine.textContent = secondHalf;
+
+  output.replaceChildren(firstLine, secondLine);
+
+  output.classList.add("password-display__text--wrapped");
+
+  display.classList.add("password-display--wrapped");
+
+  return [firstLine, secondLine];
+}
+
+function findLargestFontSizeThatFits(minimum, maximum, fits) {
+  let lower = minimum;
+  let upper = maximum;
+  let bestSize = minimum;
+
+  while (upper - lower > PASSWORD_FONT.precision) {
+    const candidate = (lower + upper) / 2;
+
+    if (fits(candidate)) {
+      bestSize = candidate;
+      lower = candidate;
+    } else {
+      upper = candidate;
+    }
+  }
+
+  return bestSize;
+}
+
+function fitPasswordToDisplay() {
+  const output = elements.passwordOutput;
+  const display = elements.passwordDisplay;
+
+  if (!output || !display || !generatedPassword) {
     return;
   }
 
@@ -255,26 +345,56 @@ function fitPasswordToDisplay() {
     return;
   }
 
-  let minimum = PASSWORD_FONT.minimum;
+  /*
+    Sempre começamos tentando uma única linha.
 
-  let maximum = PASSWORD_FONT.maximum;
+    Isso permite que uma senha dividida no mobile volte
+    automaticamente para uma linha quando a viewport
+    ganhar espaço novamente.
+  */
 
-  let bestSize = minimum;
+  resetPasswordDisplayMode();
 
-  while (maximum - minimum > PASSWORD_FONT.precision) {
-    const candidate = (minimum + maximum) / 2;
+  output.style.fontSize = `${PASSWORD_FONT.singleLineMinimum}px`;
 
-    output.style.fontSize = `${candidate}px`;
+  const fitsOnSingleLine = output.scrollWidth <= availableWidth;
 
-    if (output.scrollWidth <= availableWidth) {
-      bestSize = candidate;
-      minimum = candidate;
-    } else {
-      maximum = candidate;
-    }
+  if (fitsOnSingleLine) {
+    const bestSingleLineSize = findLargestFontSizeThatFits(
+      PASSWORD_FONT.singleLineMinimum,
+      PASSWORD_FONT.singleLineMaximum,
+      (candidate) => {
+        output.style.fontSize = `${candidate}px`;
+
+        return output.scrollWidth <= availableWidth;
+      },
+    );
+
+    output.style.fontSize = `${bestSingleLineSize}px`;
+
+    return;
   }
 
-  output.style.fontSize = `${bestSize}px`;
+  /*
+    Não cabe em uma linha.
+
+    A representação visual passa para duas metades
+    equilibradas.
+  */
+
+  const wrappedLines = renderWrappedPassword();
+
+  const bestWrappedSize = findLargestFontSizeThatFits(
+    PASSWORD_FONT.wrappedMinimum,
+    PASSWORD_FONT.wrappedMaximum,
+    (candidate) => {
+      output.style.fontSize = `${candidate}px`;
+
+      return wrappedLines.every((line) => line.scrollWidth <= availableWidth);
+    },
+  );
+
+  output.style.fontSize = `${bestWrappedSize}px`;
 }
 
 /* =========================================================
@@ -287,7 +407,18 @@ function createPassword() {
 
     const password = generatePassword(options);
 
-    elements.passwordOutput.textContent = password;
+    /*
+      Guardamos a senha original separadamente da
+      representação visual.
+
+      Isso é importante porque, no modo responsivo,
+      #generated-password passa a conter dois elementos
+      visuais separados.
+    */
+
+    generatedPassword = password;
+
+    elements.passwordOutput.textContent = generatedPassword;
 
     generatedPasswordOptions = {
       ...options,
@@ -305,6 +436,7 @@ function createPassword() {
     console.error("Password generation failed:", error);
 
     generationFailed = true;
+    generatedPassword = "";
 
     /*
       Uma falha não deixa uma senha antiga parecendo
@@ -353,7 +485,15 @@ function showCopyFeedback(message) {
    ========================================================= */
 
 async function copyPassword() {
-  const password = elements.passwordOutput.textContent;
+  /*
+    Copiamos a senha original armazenada no estado.
+
+    Não usamos textContent do elemento visual porque,
+    quando a senha está dividida em duas linhas, o DOM
+    possui dois elementos separados.
+  */
+
+  const password = generatedPassword;
 
   if (!password) {
     setAppStatus("There is no password available to copy.");
@@ -411,6 +551,14 @@ elements.copyButton.disabled = true;
 
 updateLength();
 createPassword();
+
+/*
+  As fontes podem terminar de carregar depois da primeira
+  medição.
+
+  Quando isso acontece, recalculamos a apresentação usando
+  as métricas tipográficas definitivas.
+*/
 
 if (document.fonts?.ready) {
   document.fonts.ready.then(() => {
